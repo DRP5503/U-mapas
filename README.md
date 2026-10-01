@@ -11,6 +11,25 @@ Aquí va todo lo relacionado con la información que estamos recopilando de la u
 *   **`data/raw/`**: Significa "datos crudos". Aquí guardamos los archivos originales tal cual los creamos o descargamos (los Excel, CSV o JSON con las listas de salas y profesores). 
 *   **`data/scripts/`**: Aquí guardaremos los pequeños códigos o scripts que hagamos para limpiar, arreglar o filtrar los datos de la carpeta "raw".
 
+### Cómo iniciar el proyecto localmente y configurar la Base de Datos
+Como la base de datos (`db.sqlite3`) está en el `.gitignore` para no generar conflictos ni subir "basura" a GitHub, cada miembro del equipo debe armar su propia base de datos local siguiendo estos pasos exactos en la terminal:
+
+1. **Crear y activar el entorno virtual (venv):**
+   * Para crearlo: `python -m venv venv`
+   * Para activarlo (Windows): `.\venv\Scripts\activate`
+   * Para activarlo (Mac/Linux): `source venv/bin/activate`
+2. **Instalar las herramientas de Django:**
+   `pip install -r requirements.txt`
+3. **Crear las tablas vacías en tu computador:**
+   `python manage.py migrate`
+4. **Poblar la base de datos con los datos de la universidad:**
+   `python manage.py poblar_datos`
+5. **Crear tu propio usuario administrador:**
+   `python manage.py createsuperuser`
+   *(Sigue las instrucciones en pantalla. La contraseña no se ve mientras escribes).*
+6. **Levantar el proyecto para ver el resultado:**
+   `python manage.py runserver` y luego entra en tu navegador a `http://127.0.0.1:8000/admin`.
+
 
 Diagrama propenso a cambios.
 
@@ -29,4 +48,3 @@ oficina_asignada: Puede no tener oficina asignada.
 profesor_id y sala_nombre son Foreign Key
 
 tipo_contrato: Completa, parcial y externo (esto porque en la pagina del dcc los separa asi a los profesores)
-
