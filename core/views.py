@@ -1,3 +1,7 @@
 from django.shortcuts import render
 
-# Create your views here.
+
+def index(request):
+    """Renderiza la vista general de la aplicación."""
+    return render(request, 'core/index.html')
+
