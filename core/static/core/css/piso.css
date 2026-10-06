@@ -1,0 +1,33 @@
+/* Estilos de la vista de piso.
+   Un `display` definido en CSS pisa el atributo `hidden`; esto asegura que el
+   control flotante realmente se oculte fuera de la vista de piso. */
+.map-floating-controls[hidden] { display: none; }
+
+.floor-title { margin: 0.5rem 0; }
+
+.floor-back-btn {
+  cursor: pointer;
+  background: none;
+  border: 1px solid #94A3B8;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+}
+
+.floor-canvas { width: 100%; }
+.floor-svg { width: 100%; height: auto; max-height: 70vh; }
+
+/* Salas: cada <g class="room room-<tipo>"> contiene un <rect> y un <text>. */
+.room rect { fill: #E2E8F0; stroke: #94A3B8; stroke-width: 2; cursor: pointer; }
+.room text { pointer-events: none; fill: #334155; } /* el click lo recibe el rect */
+.room:hover rect,
+.room:focus rect { fill: #BFDBFE; }
+.room:focus { outline: none; }
+.room:focus-visible rect { stroke: #2563EB; stroke-width: 3; }
+
+/* Colores por tipo (Sala.tipo) */
+.room-bano rect { fill: #FDE68A; }
+.room-escalera rect { fill: #CBD5E1; }
+.room-lab rect { fill: #C7D2FE; }
+.room-oficina rect { fill: #DCFCE7; }
+
+.room-panel { margin-top: 1rem; }
