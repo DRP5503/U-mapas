@@ -7,9 +7,134 @@
 
 // Estado global de la aplicación
 const AppState = {
-  currentView: 'general',
-  currentFloor: 3,
+  currentView: 'general',   // 'general' | 'piso'
+  currentBuilding: null,    // 'Norte' | 'Poniente' (igual que Piso.edificio)
+  currentFloor: null,       // antes 3 fijo; ahora se define al abrir un edificio
 };
+
+// [NUEVO] ---------------------------------------------------------------------
+const SVG_NS = 'http://www.w3.org/2000/svg';
+ 
+// Se incrementa en cada renderFloor(). Si el usuario cambia de piso rápido,
+// la respuesta de un fetch viejo puede llegar después de la nueva; el token
+// permite descartarla para no dibujar el piso equivocado.
+let renderToken = 0;
+ 
+// URLs de la API: vienen del template ({% url %}), con EDIFICIO como marcador.
+const vistaPisoEl = () => document.getElementById('vista-piso');
+const urlPisos = (edificio) =>
+  vistaPisoEl().dataset.urlPisos.replace('EDIFICIO', encodeURIComponent(edificio));
+const urlPiso = (edificio, numero) =>
+  vistaPisoEl().dataset.urlPiso
+    .replace('EDIFICIO', encodeURIComponent(edificio))
+    .replace(/\/0\/$/, `/${numero}/`);
+ 
+// Alterna entre la vista del campus y la vista de piso. El control flotante
+// del selector solo es visible en la vista de piso.
+function showView(name) {
+  AppState.currentView = name;
+  document.getElementById('vista-general').classList.toggle('active', name === 'general');
+  document.getElementById('vista-piso').classList.toggle('active', name === 'piso');
+  const controls = document.querySelector('.map-floating-controls');
+  if (controls) controls.hidden = name !== 'piso';
+}
+ 
+// Pide el piso al backend y dibuja un <g> (rect + etiqueta) por sala.
+async function renderFloor(edificio, numero) {
+  const token = ++renderToken;
+  let piso;
+  try {
+    const res = await fetch(urlPiso(edificio, numero));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    piso = await res.json();
+  } catch (err) {
+    console.error('No se pudo cargar el piso:', err);
+    return;
+  }
+  if (token !== renderToken) return; // llegó una respuesta más nueva: descartar
+ 
+  const svg = document.getElementById('floorSvg');
+  svg.replaceChildren();
+  // El viewBox usa el tamaño del lienzo guardado en Piso: las coordenadas de
+  // las salas quedan en ese sistema y el SVG escala a cualquier pantalla.
+  svg.setAttribute('viewBox', `0 0 ${piso.ancho} ${piso.alto}`);
+  svg.setAttribute('aria-label', `Plano del edificio ${piso.edificio}, piso ${piso.numero}`);
+  document.getElementById('floorTitle').textContent =
+    `Edificio ${piso.edificio} · Piso ${piso.numero}`;
+  document.getElementById('roomPanel').replaceChildren();
+ 
+  // Las salas sin geometría (x === null) existen en la BD pero aún no se
+  // dibujan; se omiten.
+  const dibujables = piso.salas.filter((s) => s.x !== null && s.y !== null
+    && s.ancho !== null && s.alto !== null);
+ 
+  dibujables.forEach((sala) => {
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', `room room-${sala.tipo}`); // el CSS colorea por tipo
+    g.setAttribute('role', 'button');
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('aria-label', sala.nombre);
+ 
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', sala.x);
+    rect.setAttribute('y', sala.y);
+    rect.setAttribute('width', sala.ancho);
+    rect.setAttribute('height', sala.alto);
+ 
+    // Etiqueta centrada en el rectángulo.
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('x', sala.x + sala.ancho / 2);
+    label.setAttribute('y', sala.y + sala.alto / 2);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'middle');
+    label.setAttribute('font-size', '12');
+    label.textContent = sala.nombre;
+ 
+    g.append(rect, label);
+    g.addEventListener('click', () => showRoom(sala));
+    g.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        showRoom(sala);
+      }
+    });
+    svg.appendChild(g);
+  });
+ 
+  if (dibujables.length === 0) {
+    const msg = document.createElement('p');
+    msg.textContent = 'Este piso aún no tiene plano dibujado.';
+    document.getElementById('roomPanel').appendChild(msg);
+  }
+}
+ 
+// Muestra el detalle de la sala clickeada. Se usa textContent (no innerHTML)
+// para que nombres de la BD nunca se interpreten como HTML.
+function showRoom(sala) {
+  const panel = document.getElementById('roomPanel');
+  panel.replaceChildren();
+ 
+  const titulo = document.createElement('h3');
+  titulo.textContent = sala.nombre;
+  panel.appendChild(titulo);
+ 
+  if (sala.profesores.length) {
+    const lista = document.createElement('ul');
+    sala.profesores.forEach((nombre) => {
+      const li = document.createElement('li');
+      li.textContent = nombre;
+      lista.appendChild(li);
+    });
+    panel.appendChild(lista);
+  } else {
+    const vacio = document.createElement('p');
+    vacio.textContent = 'Sin profesores asignados.';
+    panel.appendChild(vacio);
+  }
+}
+// -----------------------------------------------------------------------------
+ 
+ 
 
 document.addEventListener('DOMContentLoaded', () => {
   // Manejo de accesibilidad por teclado para los edificios

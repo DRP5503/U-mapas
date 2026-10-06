@@ -1,12 +1,19 @@
 from django.contrib import admin
 from .models import Sala, Profesor, Reporte, BloqueHorario
 
+# Vista de Pisos.
+class PisoAdmin(admin.ModelAdmin):
+    list_display = ('edificio', 'numero', 'ancho', 'alto')
+    list_filter = ('edificio',)
+
 # Personalizamos la vista de Salas
 class SalaAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'piso', 'edificio') # Vemos las 3 columnas
-    list_filter = ('edificio', 'piso') # Crea un panel lateral para filtrar fácilmente
-    search_fields = ('nombre',) # Barra de búsqueda por nombre de sala
-
+    list_display = ('nombre', 'piso', 'tipo', 'x', 'y', 'ancho', 'alto')
+    list_filter = ('piso__edificio', 'piso__numero', 'tipo')
+    search_fields = ('nombre',)
+    # Permite editar tipo y coordenadas directamente en la lista,
+    # útil para ir calcando los planos sala por sala sin abrir cada ficha.
+    list_editable = ('tipo', 'x', 'y', 'ancho', 'alto')
 # Personalizamos la vista de Profesores
 class ProfesorAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'oficina', 'jornada') # Vemos las 3 columnas
