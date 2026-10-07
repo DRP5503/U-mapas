@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Sala, Profesor, Reporte, BloqueHorario
+from .models import Piso, Sala, Profesor, Reporte, BloqueHorario
 
 # Vista de Pisos.
 class PisoAdmin(admin.ModelAdmin):
@@ -21,6 +21,7 @@ class ProfesorAdmin(admin.ModelAdmin):
     search_fields = ('nombre',) # Barra de búsqueda por nombre del profe
 
 # Registramos los modelos conectándolos con sus nuevas vistas
+admin.site.register(Piso, PisoAdmin)
 admin.site.register(Sala, SalaAdmin)
 admin.site.register(Profesor, ProfesorAdmin)
 

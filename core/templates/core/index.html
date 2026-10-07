@@ -21,27 +21,8 @@
                 </svg>
             </button>
 
-            <!-- Menú desplegable de niveles -->
-            <ul class="floor-dropdown-menu" id="floorDropdownMenu" role="listbox" aria-label="Pisos disponibles" hidden>
-                <li class="floor-option" role="option" data-floor="4" tabindex="0">
-                    <span>Piso 4</span>
-                </li>
-                <li class="floor-option active" role="option" data-floor="3" aria-selected="true" tabindex="0">
-                    <span>Piso 3</span>
-                    <svg class="floor-check-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </li>
-                <li class="floor-option" role="option" data-floor="2" tabindex="0">
-                    <span>Piso 2</span>
-                </li>
-                <li class="floor-option" role="option" data-floor="1" tabindex="0">
-                    <span>Piso 1</span>
-                </li>
-                <li class="floor-option" role="option" data-floor="-1" tabindex="0">
-                    <span>Subterráneo -1</span>
-                </li>
-            </ul>
+            <!-- Ahora es un menú "vacío": se llena desde map.js (setFloorOptions) -->
+            <ul class="floor-dropdown-menu" id="floorDropdownMenu" role="listbox" aria-label="Pisos disponibles" hidden></ul>
         </div>
     </div>
 
@@ -67,8 +48,11 @@
                 <line x1="135" y1="168" x2="135" y2="198" stroke="#94A3B8" stroke-width="3" />
                 <line x1="181" y1="168" x2="181" y2="198" stroke="#94A3B8" stroke-width="3" />
 
-                <!-- 2. Edificio Poniente -->
-                <g id="edificio-poniente" class="interactive-building interactive-poniente" role="button" tabindex="0" aria-label="Edificio Poniente">
+                <!-- 2. Edificio Poniente
+                     data-edificio="Poniente": map.js lo lee con
+                     edificio.dataset.edificio para saber qué edificio abrir;
+                     debe coincidir con Piso.edificio en la BD. -->
+                <g id="edificio-poniente" data-edificio="Poniente" class="interactive-building interactive-poniente" role="button" tabindex="0" aria-label="Edificio Poniente">
                     <rect class="building-bg poniente-bg" x="20" y="195" width="215" height="460" rx="18" fill="#B5BED1" stroke="#94A3B8" stroke-width="3" filter="url(#campus-card-shadow)" />
                     <!-- Tipografía vertical: Edificio Poniente -->
                     <text x="-565" y="92" transform="rotate(-90)" font-size="38" font-weight="700" fill="#475569" letter-spacing="1px" class="building-word-light">Edificio</text>
@@ -81,8 +65,9 @@
                     <text x="340" y="565" font-size="115" font-weight="900" fill="#8E9DB5" letter-spacing="1px">851</text>
                 </g>
 
-                <!-- 4. Edificio Norte -->
-                <g id="edificio-norte" class="interactive-building interactive-norte" role="button" tabindex="0" aria-label="Edificio Norte">
+                <!-- 4. Edificio Norte
+                     [CAMBIO] data-edificio="Norte" (ver comentario de Poniente). -->
+                <g id="edificio-norte" data-edificio="Norte" class="interactive-building interactive-norte" role="button" tabindex="0" aria-label="Edificio Norte">
                     <rect class="building-bg norte-bg" x="20" y="20" width="580" height="150" rx="18" fill="#B5BED1" stroke="#94A3B8" stroke-width="3" filter="url(#campus-card-shadow)" />
                     <!-- Tipografía horizontal: Edificio Norte -->
                     <text x="137" y="110" font-size="44" font-weight="700" fill="#475569" letter-spacing="0.5px" class="building-word-light">Edificio</text>
@@ -90,6 +75,27 @@
                 </g>
             </svg>
         </div>
+    </section>
+
+    <!-- =======================================================================
+         [NUEVO] VISTA DE PISO
+         Se muestra al hacer click en un edificio (sin .active hasta entonces).
+         - data-url-pisos / data-url-piso: URLs de la API generadas con la etiqueta url de Django
+           para no depender del prefijo con que se incluya core.urls. map.js
+           reemplaza el texto EDIFICIO (y el 0 final) por los valores reales.
+         - #floorSvg: aquí renderFloor() dibuja un <rect> por sala.
+         - #roomPanel: detalle de la sala clickeada (profesores).
+           aria-live="polite" hace que lectores de pantalla anuncien el cambio.
+         ======================================================================= -->
+    <section id="vista-piso" class="view-panel" aria-label="Plano del piso" tabindex="-1"
+             data-url-pisos="{% url 'core:pisos_edificio' 'EDIFICIO' %}"
+             data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}">
+        <button type="button" id="backToGeneral" class="floor-back-btn">← Volver al campus</button>
+        <h2 id="floorTitle" class="floor-title"></h2>
+        <div class="floor-canvas">
+            <svg id="floorSvg" class="floor-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plano del piso"></svg>
+        </div>
+        <aside id="roomPanel" class="room-panel" aria-live="polite"></aside>
     </section>
 
 </div>

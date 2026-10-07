@@ -21,7 +21,7 @@ class Sala(models.Model):
         ('escalera', 'Escalera'),
         ('otro', 'Otro'),
     ]
-    nombre = models.CharField(max_length=10, primary_key=True)
+    nombre = models.CharField(max_length=80)
     piso = models.ForeignKey(Piso, on_delete=models.CASCADE, related_name='salas')
     edificio = models.CharField(max_length=50)
 
