@@ -64,8 +64,9 @@ class Command(BaseCommand):
                     continue
 
                 piso_obj, _ = Piso.objects.get_or_create(
-                    edificio=edificio, numero=numero
-                )
+                    edificio=edificio, numero=numero,
+                    defaults={'ancho': 1000, 'alto': 600},
+                )               
                 _, creada = Sala.objects.get_or_create(
                     piso=piso_obj,
                     nombre=nombre,

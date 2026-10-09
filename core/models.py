@@ -1,4 +1,5 @@
 from django.db import models
+import math
 
 class Piso(models.Model):
     edificio = models.CharField(max_length=50)
@@ -21,7 +22,7 @@ class Sala(models.Model):
         ('escalera', 'Escalera'),
         ('otro', 'Otro'),
     ]
-    nombre = models.CharField(max_length=10, primary_key=True)
+    nombre = models.CharField(max_length=80)
     piso = models.ForeignKey(Piso, on_delete=models.CASCADE, related_name='salas')
     edificio = models.CharField(max_length=50)
 
@@ -33,6 +34,8 @@ class Sala(models.Model):
     y = models.FloatField(null=True, blank=True)
     ancho = models.FloatField(null=True, blank=True)
     alto = models.FloatField(null=True, blank=True)
+
+    nodo = models.ForeignKey('Nodo', on_delete=models.SET_NULL, null=True, blank=True, related_name='salas')
 
     class Meta:
         unique_together = ('piso', 'nombre')
@@ -70,3 +73,26 @@ class BloqueHorario(models.Model):
 
     def __str__(self):
         return f"{self.profesor.nombre} - {self.dia_semana}"
+
+class Nodo(models.Model):
+    piso = models.ForeignKey(Piso, on_delete=models.CASCADE, related_name='nodos')
+    nombre = models.CharField(max_length=60)   # ej: "puerta N331", "pasillo norte 250"
+    x = models.FloatField()
+    y = models.FloatField()
+
+    class Meta:
+        unique_together = ('piso', 'nombre')
+
+    def __str__(self):
+        return f"{self.nombre} ({self.piso})"
+
+class Arista(models.Model):
+    origen = models.ForeignKey(Nodo, on_delete=models.CASCADE, related_name='salientes')
+    destino = models.ForeignKey(Nodo, on_delete=models.CASCADE, related_name='entrantes')
+
+    class Meta:
+        unique_together = ('origen', 'destino')
+
+    @property
+    def peso(self):
+        return math.dist((self.origen.x, self.origen.y), (self.destino.x, self.destino.y))        

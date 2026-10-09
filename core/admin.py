@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Sala, Profesor, Reporte, BloqueHorario
+from .models import Piso, Sala, Profesor, Reporte, BloqueHorario, Nodo, Arista
 
 # Vista de Pisos.
 class PisoAdmin(admin.ModelAdmin):
@@ -20,10 +20,28 @@ class ProfesorAdmin(admin.ModelAdmin):
     list_filter = ('jornada',) # Panel lateral para filtrar por Completa, Parcial o Externo
     search_fields = ('nombre',) # Barra de búsqueda por nombre del profe
 
-# Registramos los modelos conectándolos con sus nuevas vistas
+# Personalizamos la vista de Nodos del grafo del piso.
+# Permite ver sus coordenadas y editar su posición directamente en la lista.
+class NodoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'piso', 'x', 'y')
+    list_filter = ('piso',)
+    list_editable = ('x', 'y')
+    search_fields = ('nombre',)
+
+# Personalizamos la vista de Aristas del grafo.
+# Permite consultar las conexiones entre nodos y filtrar por piso de origen.
+class AristaAdmin(admin.ModelAdmin):
+    list_display = ('origen', 'destino')
+    list_filter = ('origen__piso',)
+
+# Registramos los modelos con sus respectivas vistas personalizadas en el administrador.
+admin.site.register(Piso, PisoAdmin)
 admin.site.register(Sala, SalaAdmin)
 admin.site.register(Profesor, ProfesorAdmin)
 
-
+# Registramos los modelos sin una vista personalizada.
 admin.site.register(Reporte)
 admin.site.register(BloqueHorario)
+
+admin.site.register(Nodo, NodoAdmin)
+admin.site.register(Arista, AristaAdmin)
