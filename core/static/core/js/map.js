@@ -16,6 +16,7 @@ const AppState = {
   currentView: 'general',   // [CAMBIO] 'general' | 'piso'
   currentBuilding: null,    // [NUEVO] 'Norte' | 'Poniente' (igual que Piso.edificio)
   currentFloor: null,       // [CAMBIO] antes 3 fijo; ahora se define al abrir un edificio
+  origenRuta: null,         // sala elegida como punto de partida
 };
 
 // [NUEVO] ---------------------------------------------------------------------
@@ -114,6 +115,85 @@ async function renderFloor(edificio, numero) {
   }
 }
 
+// Construye la URL de la ruta reemplazando los marcadores del template.
+const urlRuta = (edificio, numero, desde, hasta) =>
+  vistaPisoEl().dataset.urlRuta
+    .replace('EDIFICIO', encodeURIComponent(edificio))
+    .replace('/0/DESDE/HASTA/',
+      `/${numero}/${encodeURIComponent(desde)}/${encodeURIComponent(hasta)}/`);
+
+// Dibuja la ruta como una línea con un círculo verde al inicio y rojo al final.
+function dibujarRuta(puntos) {
+  const svg = document.getElementById('floorSvg');
+  borrarRuta();
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'ruta');
+  const linea = document.createElementNS(SVG_NS, 'polyline');
+  linea.setAttribute('class', 'ruta-linea');
+  linea.setAttribute('points', puntos.map((p) => `${p.x},${p.y}`).join(' '));
+  const marca = (p, clase) => {
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('class', clase);
+    c.setAttribute('cx', p.x);
+    c.setAttribute('cy', p.y);
+    c.setAttribute('r', 8);
+    return c;
+  };
+  g.append(linea, marca(puntos[0], 'ruta-inicio'), marca(puntos[puntos.length - 1], 'ruta-fin'));
+  svg.appendChild(g);
+}
+
+function borrarRuta() {
+  document.getElementById('floorSvg').querySelector('.ruta')?.remove();
+}
+
+// Pide la ruta al backend y la dibuja. `estado` es el <p> donde se avisa al usuario.
+async function pedirRuta(hasta, estado) {
+  if (!AppState.origenRuta) {
+    estado.textContent = 'Primero elige un origen con "Partir desde aquí".';
+    return;
+  }
+  try {
+    const res = await fetch(urlRuta(AppState.currentBuilding, AppState.currentFloor,
+      AppState.origenRuta, hasta));
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      estado.textContent = data.error || 'No se pudo calcular la ruta.';
+      return;
+    }
+    dibujarRuta(data.puntos);
+    estado.textContent = `Ruta de ${data.desde} a ${data.hasta} (${data.distancia} unidades).`;
+  } catch (err) {
+    console.error('No se pudo pedir la ruta:', err);
+    estado.textContent = 'Error al pedir la ruta.';
+  }
+}
+
+// Agrega los botones de ruta al panel de la sala.
+function agregarControlesRuta(sala, panel) {
+  const estado = document.createElement('p');
+  estado.className = 'route-status';
+  if (AppState.origenRuta) estado.textContent = `Origen elegido: ${AppState.origenRuta}`;
+  const acciones = document.createElement('div');
+  acciones.className = 'route-actions';
+  const boton = (texto, onClick) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = texto;
+    b.addEventListener('click', onClick);
+    return b;
+  };
+  acciones.append(
+    boton('Partir desde aquí', () => {
+      AppState.origenRuta = sala.nombre;
+      estado.textContent = `Origen elegido: ${sala.nombre}`;
+    }),
+    boton('Ir hasta aquí', () => pedirRuta(sala.nombre, estado)),
+    boton('Borrar ruta', () => { borrarRuta(); estado.textContent = ''; }),
+  );
+  panel.append(acciones, estado);
+}
+
 // Muestra el detalle de la sala clickeada. Se usa textContent (no innerHTML)
 // para que nombres de la BD nunca se interpreten como HTML.
 function showRoom(sala) {
@@ -137,6 +217,8 @@ function showRoom(sala) {
     vacio.textContent = 'Sin profesores asignados.';
     panel.appendChild(vacio);
   }
+
+  agregarControlesRuta(sala, panel);
 }
 // -----------------------------------------------------------------------------
 

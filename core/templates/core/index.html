@@ -89,7 +89,8 @@
          ======================================================================= -->
     <section id="vista-piso" class="view-panel" aria-label="Plano del piso" tabindex="-1"
              data-url-pisos="{% url 'core:pisos_edificio' 'EDIFICIO' %}"
-             data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}">
+             data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}"
+             data-url-ruta="{% url 'core:ruta_json' 'EDIFICIO' 0 'DESDE' 'HASTA' %}">
         <button type="button" id="backToGeneral" class="floor-back-btn">← Volver al campus</button>
         <h2 id="floorTitle" class="floor-title"></h2>
         <div class="floor-canvas">

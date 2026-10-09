@@ -1,6 +1,7 @@
 import csv
 import os
 from django.core.management.base import BaseCommand
+from django.core.management import call_command
 from django.conf import settings
 from core.models import Sala, Profesor
 
@@ -13,20 +14,9 @@ class Command(BaseCommand):
         ruta_salas = os.path.join(settings.BASE_DIR, 'data', 'raw', 'Salas-DCC.csv')
         ruta_profes = os.path.join(settings.BASE_DIR, 'data', 'raw', 'Profesores.csv')
 
-        # 2. Cargar Salas primero (No tienen llaves foráneas)
+        # 2. Cargar Salas reutilizando importar_salas (crea los Piso y la Sala)
         self.stdout.write("Cargando Salas...")
-        with open(ruta_salas, encoding='utf-8') as archivo:
-            lector = csv.reader(archivo)
-            next(lector) # Saltar la primera fila (encabezados)
-            for fila in lector:
-                # fila[0] = nombre, fila[1] = piso, fila[2] = edificio
-                Sala.objects.get_or_create(
-                    nombre=fila[0].strip(),
-                    defaults={
-                        'piso': int(fila[1]),
-                        'edificio': fila[2].strip()
-                    }
-                )
+        call_command('importar_salas', ruta_salas)
         self.stdout.write(self.style.SUCCESS("¡Salas cargadas con éxito!"))
 
         # 3. Cargar Profesores
