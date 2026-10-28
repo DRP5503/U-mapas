@@ -51,11 +51,11 @@ profesor_id y sala_nombre son Foreign Key
 
 tipo_contrato: Completa, parcial y externo (esto porque en la pagina del dcc los separa asi a los profesores)
 
+-----SE AGREGAN LAS SIGUIENTES ENTIDADES------------------------
+
 User: entidad para manejar el sistema de perfiles y control de acceso
 
 Piso: se crea para añadir dimensiones y poder implementar navegacion
-
------SE AGREGAN LAS SIGUIENTES ENTIDADES------------------------
 
 Nodos y Aristas: se crean para hacer las conexiones y calcular la ruta más corta
 
