@@ -1,0 +1,75 @@
+nombre,piso,edificio,x,y
+La Salita,3,Norte,84,119
+La Salita Pasillo,3,Norte,84,142
+Ofisalita,3,Norte,195,119
+Ofisalita Pasillo,3,Norte,195,142
+N331,3,Norte,250,119
+N331 Pasillo,3,Norte,250,142
+N330,3,Norte,306,119
+N330 Pasillo,3,Norte,306,142
+N329,3,Norte,361,119
+N329 Pasillo,3,Norte,361,142
+N328,3,Norte,417,119
+N328 Pasillo,3,Norte,417,142
+N327,3,Norte,472,119
+N327 Pasillo,3,Norte,472,142
+N326,3,Norte,556,119
+N326 Pasillo,3,Norte,556,142 
+N325,3,Norte, 653,119
+N325 Pasillo,3,Norte,653,142
+N324,3,Norte,722,119
+N324 Pasillo,3,Norte,722,142
+N323,3,Norte,777,119
+N323 Pasillo,3,Norte,777,142
+N322,3,Norte,833,119
+N322 Pasillo,3,Norte,833,142
+Dirección,3,Norte,861,142
+Dirección Pasillo,3,Norte,805,142
+Laboratorio Lorenzo,3,Norte,222,228
+Laboratorio Lorenzo Pasillo,3,Norte,250,228
+Laboratorio Dichato,3,Norte,222,322
+Laboratorio Dichato Pasillo,3,Norte,250,322
+Sala Fundadores,3,Norte,368,166
+Sala Fundadores Pasillo,3,Norte,368,142
+Sala de Reuniones,3,Norte,368,354
+Sala de Reuniones Pasillo,3,Norte,368,378
+Baño_h,3,Norte,472,166
+Entrada,3,Norte,583,166
+Entrada Pasillo,3,Norte,583,142
+Cocina,3,Norte,722,166
+Baño_m,3,Norte,698,347
+Baño_m Pasillo,3,Norte,698,378
+Auditorio Ramón Picarte,3,Norte,834,260
+Auditorio Ramón Picarte Pasillo,3,Norte,805,260
+N303,3,Norte,139,402
+N303 Pasillo,3,Norte,139,378
+N304,3,Norte,194,402
+N304 Pasillo,3,Norte,194,378
+N305,3,Norte,250,402
+N305 Pasillo,3,Norte,250,378
+N306,3,Norte,306,402
+N306 Pasillo,3,Norte,306,378
+N307,3,Norte,361,402
+N307 Pasillo,3,Norte,361,378
+N308,3,Norte,417,402
+N308 Pasillo,3,Norte,417,378
+N309,3,Norte,472,402
+N309 Pasillo,3,Norte,472,378
+N310,3,Norte,528,402
+N310 Pasillo,3,Norte,528,378
+N311,3,Norte,583,402
+N311 Pasillo,3,Norte,583,378
+N312,3,Norte,639,402
+N312 Pasillo,3,Norte,639,378
+N313,3,Norte,694,402
+N313 Pasillo,3,Norte,694,378
+N314,3,Norte,749,402
+N314 Pasillo,3,Norte,749,378
+N315,3,Norte,805,402
+N315 Pasillo,3,Norte,805,378
+N316,3,Norte,861,402
+N316 Pasillo,3,Norte,861,378
+N317,3,Norte,916,402
+N317 Pasillo,3,Norte,916,378
+N318,3,Norte,972,402
+N318 Pasillo,3,Norte,972,378

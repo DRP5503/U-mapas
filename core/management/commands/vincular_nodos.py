@@ -1,118 +1,107 @@
 """
 Comando de gestión: vincular_nodos
 
-Asigna a cada sala de un piso su nodo del grafo de rutas, es decir, el punto
-que representa su puerta. Ese vínculo (Sala.nodo) es el que usa la vista
-`ruta_json` para saber desde dónde y hasta dónde calcular el camino más corto.
+Importa el grafo de rutas (nodos y aristas) desde dos archivos CSV.
 
 Uso:
-    python manage.py vincular_nodos <edificio> <piso>
+    python manage.py vincular_nodos <ruta_nodos> <ruta_aristas>
 
 Ejemplo:
-    python manage.py vincular_nodos Norte 3
+    python manage.py vincular_nodos data/raw/nodos.csv data/raw/aristas.csv
 
-Requisitos previos:
-    - Las salas del piso ya existen (ver el comando `importar_salas`).
-    - Los nodos del piso ya fueron creados (por ejemplo, desde el admin).
+Formato de los CSV:
+    nodos.csv    -> edificio,piso,nombre,x,y
+    aristas.csv  -> edificio,piso,origen,destino
 
-Cómo se elige el nodo de cada sala (en este orden):
-    1. Un nodo cuyo nombre sea igual al de la sala (sin distinguir mayúsculas).
-    2. Si no hay, un nodo cuyo nombre contenga el mismo número que la sala.
-       Ejemplo: la sala "N331" se enlaza con el nodo "Oficina 331".
-    3. Si el número coincide con varios nodos (por ejemplo la puerta
-       "Oficina 331" y el punto de pasillo "Oficina 331 Pasillo"), se elige el
-       que cae dentro o sobre el borde del rectángulo de la sala. La puerta
-       está en el borde de la sala y el punto de pasillo queda afuera.
-       Esto requiere que la sala tenga sus coordenadas (x, y, ancho, alto).
-
-Resultado:
-    Imprime cuántas salas quedaron enlazadas y dos listas para revisar a mano:
-    - "Sin nodo": salas para las que no se encontró ningún nodo.
-    - "Ambiguas": salas con varios candidatos que no se pudieron desempatar.
-    El comando nunca adivina: si hay duda, deja la sala sin tocar.
+Cómo funciona:
+    Pasada 1: crea o actualiza cada nodo (se identifica por piso y nombre).
+    Pasada 2: crea las aristas entre nodos que ya existen.
+    Las filas inválidas se omiten con un aviso y no detienen la importación.
 
 Notas:
-    - Es seguro ejecutarlo varias veces: solo reescribe el campo `nodo` de las
-      salas en las que encuentra un nodo, y no crea ni borra nada más.
-    - Una sala tiene un único nodo. Si hay varias puertas, se debe elegir la
-      principal.
+    - Es seguro ejecutarlo varias veces: no duplica nodos ni aristas.
+    - Cada conexión se escribe una sola vez en el CSV; el grafo la trata
+      como bidireccional.
+    - Este comando no enlaza salas con nodos: para eso está `vincular_nodos`.
 """
-import re
+import csv
 
 from django.core.management.base import BaseCommand
 
-from core.models import Nodo, Sala
+from core.models import Piso, Nodo, Arista, Sala
 
 
 class Command(BaseCommand):
-    """Enlaza cada sala de un piso con su nodo (puerta) en el grafo de rutas."""
+    """Importa nodos y aristas del grafo de rutas desde dos CSV."""
 
-    help = 'Asigna a cada sala su nodo (puerta), buscando por nombre y luego por número'
+    help = 'Importa nodos y aristas del grafo de rutas desde dos CSV'
 
     def add_arguments(self, parser):
-        """Define los argumentos: edificio (texto) y número de piso (entero)."""
-        parser.add_argument('edificio', help='Nombre del edificio, por ejemplo Norte')
-        parser.add_argument('piso', type=int, help='Número del piso, por ejemplo 3')
+        parser.add_argument('ruta_nodos', help='Ruta al CSV de nodos')
+        parser.add_argument('ruta_aristas', help='Ruta al CSV de aristas')
+
+    def _nodo(self, edificio, piso, nombre):
+        # El nombre solo es único dentro de un piso, así que se filtra por piso.
+        return Nodo.objects.get(
+            piso__edificio__iexact=edificio,
+            piso__numero=int(piso),
+            nombre=nombre,
+        )
 
     def handle(self, *args, **opts):
-        """
-        Recorre las salas del piso indicado y asigna a cada una su nodo.
+        with open(opts['ruta_nodos'], encoding='utf-8') as archivo:
+            nodos = list(csv.DictReader(archivo))
+        with open(opts['ruta_aristas'], encoding='utf-8') as archivo:
+            aristas = list(csv.DictReader(archivo))
 
-        Para cada sala prueba primero el nombre y luego el número (ver la
-        descripción del módulo). Al terminar informa cuántas quedaron
-        enlazadas y cuáles requieren revisión manual.
-        """
-        salas = Sala.objects.filter(
-            piso__edificio__iexact=opts['edificio'], piso__numero=opts['piso']
-        )
-        if not salas.exists():
-            self.stderr.write('No hay salas en ese piso. Revisa edificio y número.')
-            return
+        # Pasada 1: crear o actualizar los nodos.
+        for fila in nodos:
+            try:
+                x = float(fila['x'])
+                y = float(fila['y'])
+                piso = Piso.objects.get(
+                    edificio__iexact=fila['edificio'], numero=int(fila['piso'])
+                )
+            except (ValueError, Piso.DoesNotExist):
+                self.stdout.write(self.style.WARNING(f"Nodo inválido, se omite: {fila}"))
+                continue
 
-        # Contador de éxitos y listas de salas que necesitan revisión manual.
-        enlazadas, sin_nodo, ambiguas = 0, [], []
-        for s in salas:
-            # Solo se consideran los nodos del mismo piso que la sala.
-            nodos = Nodo.objects.filter(piso=s.piso)
+            Nodo.objects.update_or_create(
+                nombre=fila['nombre'],
+                piso=piso,
+                defaults={'x': x, 'y': y},
+            )
 
-            # 1) Coincidencia exacta de nombre (sin distinguir mayúsculas).
-            n = nodos.filter(nombre__iexact=s.nombre).first()
+        # Pasada 2: crear las aristas.
+        for fila in aristas:
+            try:
+                origen = self._nodo(fila['edificio'], fila['piso'], fila['origen'])
+                destino = self._nodo(fila['edificio'], fila['piso'], fila['destino'])
+            except (ValueError, Nodo.DoesNotExist):
+                self.stdout.write(self.style.WARNING(f"Arista inválida, se omite: {fila}"))
+                continue
 
-            # 2) Si no hay coincidencia exacta, buscar por el número del nombre.
-            if n is None:
-                m = re.search(r'\d+', s.nombre)
-                if m:
-                    # El número debe aparecer completo: así "31" no coincide con
-                    # "331". El patrón exige que a los lados no haya otro dígito.
-                    patron = r'(^|[^0-9])' + m.group() + r'([^0-9]|$)'
-                    candidatos = list(nodos.filter(nombre__iregex=patron))
+            Arista.objects.get_or_create(origen=origen, destino=destino)
 
-                    # 3) Desempate geométrico: si hay varios candidatos, la puerta
-                    # es el que cae dentro o sobre el borde de la sala.
-                    if len(candidatos) > 1 and s.x is not None:
-                        dentro = [
-                            c for c in candidatos
-                            if s.x <= c.x <= s.x + s.ancho and s.y <= c.y <= s.y + s.alto
-                        ]
-                        # Solo se acepta si el desempate deja exactamente uno.
-                        if len(dentro) == 1:
-                            candidatos = dentro
+        self.stdout.write(self.style.SUCCESS(
+            f"Listo: {Nodo.objects.count()} nodos y {Arista.objects.count()} aristas en total."
+        ))
 
-                    if len(candidatos) == 1:
-                        n = candidatos[0]
-                    elif len(candidatos) > 1:
-                        # Sigue habiendo duda: se reporta y no se asigna nada.
-                        ambiguas.append((s.nombre, [c.nombre for c in candidatos]))
-                        continue
+        vinculadas = 0
+        sin_coincidencia = []
 
-            if n:
-                s.nodo = n
-                s.save()
-                enlazadas += 1
+        for sala in Sala.objects.filter(nodo__isnull=True):
+            nodo = Nodo.objects.filter(
+                piso=sala.piso,
+                nombre__iexact=sala.nombre
+            ).first()
+
+            if nodo:
+                sala.nodo = nodo
+                sala.save(update_fields=["nodo"])
+                vinculadas += 1
             else:
-                sin_nodo.append(s.nombre)
+                sin_coincidencia.append(sala.nombre)
 
-        # Resumen final para revisar a mano lo que no se pudo enlazar.
-        self.stdout.write(self.style.SUCCESS(f'{enlazadas} salas enlazadas.'))
-        self.stdout.write(f'Sin nodo ({len(sin_nodo)}): {sin_nodo}')
-        self.stdout.write(f'Ambiguas ({len(ambiguas)}): {ambiguas}')
+        print("Salas vinculadas:", vinculadas)
+        print("Salas sin nodo coincidente:", sin_coincidencia)
