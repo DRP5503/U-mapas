@@ -24,16 +24,18 @@ Como la base de datos (`db.sqlite3`) está en el `.gitignore` para no generar co
    `python manage.py migrate`
 4. **Poblar la base de datos con los datos de la universidad:**
    `python manage.py poblar_datos`
-5. **Crear tu propio usuario administrador:**
+5. **Asigna los nodos a las salas, si depende de los datos cargados en el paso anterior.**
+   `python manage.py vincular_nodos data/raw/Nodo.csv data/raw/Arista.csv `
+6. **Crear tu propio usuario administrador:**
    `python manage.py createsuperuser`
    *(Sigue las instrucciones en pantalla. La contraseña no se ve mientras escribes).*
-6. **Levantar el proyecto para ver el resultado:**
+7. **Levantar el proyecto para ver el resultado:**
    `python manage.py runserver` y luego entra en tu navegador a `http://127.0.0.1:8000/admin`.
 
 
 Diagrama propenso a cambios.
 
-![Diagrama del modelo de datos](imagenes/diagrama-modelo-datos.png)
+![Diagrama del modelo de datos](imagenes/diagrama_v2.png)
 
 
 BloqueHorario ➔ Profesor: La flecha indica que un profesor posee múltiples bloques de horario en la semana.
@@ -48,3 +50,16 @@ oficina_asignada: Puede no tener oficina asignada.
 profesor_id y sala_nombre son Foreign Key
 
 tipo_contrato: Completa, parcial y externo (esto porque en la pagina del dcc los separa asi a los profesores)
+
+User: entidad para manejar el sistema de perfiles y control de acceso
+
+Piso: se crea para añadir dimensiones y poder implementar navegacion
+
+-----SE AGREGAN LAS SIGUIENTES ENTIDADES------------------------
+
+Nodos y Aristas: se crean para hacer las conexiones y calcular la ruta más corta
+
+Queda pendiente terminar de implementar los nodos y crear la vista del tercer piso poniente
+
+Queda pendiente revision de el modelado de los datos para asegurarse de que no vamos a modificarlos una vez este mas avanzado el proyecto
+

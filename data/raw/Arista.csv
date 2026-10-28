@@ -1,0 +1,81 @@
+origen,piso,edificio,destino
+La Salita,3,Norte,La Salita Pasillo
+Ofisalita,3,Norte,Ofisalita Pasillo
+N331,3,Norte,N331 Pasillo
+N330,3,Norte,N330 Pasillo
+N329,3,Norte,N329 Pasillo
+N328,3,Norte,N328 Pasillo
+N327,3,Norte,N327 Pasillo
+N326,3,Norte,N326 Pasillo
+N325,3,Norte,N325 Pasillo
+N324,3,Norte,N324 Pasillo
+N323,3,Norte,N323 Pasillo
+N322,3,Norte,N322 Pasillo
+Dirección,3,Norte,Dirección Pasillo
+Laboratorio Lorenzo,3,Norte,Laboratorio Lorenzo Pasillo
+Laboratorio Dichato,3,Norte,Laboratorio Dichato Pasillo
+Sala Fundadores,3,Norte,Sala Fundadores Pasillo
+Sala de Reuniones,3,Norte,Sala de Reuniones Pasillo
+Baño_h,3,Norte,N327 Pasillo
+Entrada,3,Norte,Entrada Pasillo
+Cocina,3,Norte,N324 Pasillo
+Baño_m,3,Norte,Baño_m Pasillo
+Auditorio Ramón Picarte,3,Norte,Auditorio Ramón Picarte Pasillo
+N303,3,Norte,N303 Pasillo
+N304,3,Norte,N304 Pasillo
+N305,3,Norte,N305 Pasillo
+N306,3,Norte,N306 Pasillo
+N307,3,Norte,N307 Pasillo
+N308,3,Norte,N308 Pasillo
+N309,3,Norte,N309 Pasillo
+N310,3,Norte,N310 Pasillo
+N311,3,Norte,N311 Pasillo
+N312,3,Norte,N312 Pasillo
+N313,3,Norte,N313 Pasillo
+N314,3,Norte,N314 Pasillo
+N315,3,Norte,N315 Pasillo
+N316,3,Norte,N316 Pasillo
+N317,3,Norte,N317 Pasillo
+N318,3,Norte,N318 Pasillo
+La Salita Pasillo,3,Norte,Ofisalita Pasillo
+Ofisalita Pasillo,3,Norte,N331 Pasillo
+N331 Pasillo,3,Norte,N330 Pasillo
+N330 Pasillo,3,Norte,N329 Pasillo
+N329 Pasillo,3,Norte,N328 Pasillo
+N329 Pasillo,3,Norte,Sala Fundadores Pasillo
+Sala Fundadores Pasillo,3,Norte,N328 Pasillo
+N328 Pasillo,3,Norte,N327 Pasillo
+N327 Pasillo,3,Norte,N326 Pasillo
+N326 Pasillo,3,Norte,N325 Pasillo
+N326 Pasillo,3,Norte,Entrada Pasillo
+Entrada Pasillo,3,Norte,N325 Pasillo
+N325 Pasillo,3,Norte,N324 Pasillo
+N324 Pasillo,3,Norte,N323 Pasillo
+N324 Pasillo,3,Norte,N323 Pasillo
+N323 Pasillo,3,Norte,N322 Pasillo
+N322 Pasillo,3,Norte,Dirección Pasillo
+N323 Pasillo,3,Norte,Auditorio Ramón Picarte Pasillo
+Auditorio Ramón Picarte Pasillo,3,Norte,N315 Pasillo
+N315 Pasillo,3,Norte,N316 Pasillo
+N316 Pasillo,3,Norte,N317 Pasillo
+N317 Pasillo,3,Norte,N318 Pasillo
+N315 Pasillo,3,Norte,N314 Pasillo
+N314 Pasillo,3,Norte,N313 Pasillo
+N313 Pasillo,3,Norte,N312 Pasillo
+N313 Pasillo,3,Norte,Baño_m Pasillo
+N312 Pasillo,3,Norte,N311 Pasillo
+N311 Pasillo,3,Norte,N310 Pasillo
+N310 Pasillo,3,Norte,N309 Pasillo
+N309 Pasillo,3,Norte,N308 Pasillo
+N308 Pasillo,3,Norte,N307 Pasillo
+N308 Pasillo,3,Norte,Sala de Reuniones Pasillo
+Sala de Reuniones Pasillo,3,Norte,N307 Pasillo
+N307 Pasillo,3,Norte,N306 Pasillo
+N306 Pasillo,3,Norte,N305 Pasillo
+N305 Pasillo,3,Norte,N304 Pasillo
+N304 Pasillo,3,Norte,N303 Pasillo
+N304 Pasillo,3,Norte,N303 Pasillo
+N305 Pasillo,3,Norte,N331 Pasillo
+N305 Pasillo,3,Norte,Laboratorio Dichato Pasillo
+Laboratorio Dichato Pasillo,3,Norte,Laboratorio Lorenzo Pasillo
+Laboratorio Lorenzo Pasillo,3,Norte,N331 Pasillo
