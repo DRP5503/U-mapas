@@ -1,37 +1,14 @@
-{% extends 'core/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block content %}
 <div class="views-wrapper">
 
-    <!-- =======================================================================
-         CONTROL FLOTANTE DE SELECCIÓN DE PISO
-         ======================================================================= -->
-    <div class="map-floating-controls" aria-label="Controles de piso">
-        <div class="floor-selector-dropdown">
-            <button type="button" class="floor-selector-btn" id="floorSelectorBtn" aria-expanded="false" aria-haspopup="listbox" aria-label="Selector de piso. Piso 3 seleccionado" title="Seleccionar piso">
-                <svg class="floor-selector-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                    <polyline points="2 17 12 22 22 17"></polyline>
-                    <polyline points="2 12 12 17 22 12"></polyline>
-                </svg>
-                <span class="floor-selector-label" id="currentFloorLabel">Piso 3</span>
-                <svg class="floor-selector-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </button>
+    <!-- Control flotante de selección de piso -->
+    {% include 'partials/floor_selector.html' %}
 
-            <!-- Ahora es un menú "vacío": se llena desde map.js (setFloorOptions) -->
-            <ul class="floor-dropdown-menu" id="floorDropdownMenu" role="listbox" aria-label="Pisos disponibles" hidden></ul>
-        </div>
-    </div>
-
-    <!-- =======================================================================
-         VISTA GENERAL DEL CAMPUS (DCC / BEAUCHEF 851)
-         ======================================================================= -->
+    <!-- Vista general del campus (DCC / Beauchef 851) -->
     <section id="vista-general" class="view-panel active" aria-label="Vista general del Departamento de Computación" tabindex="-1">
-
-        <!-- Lienzo esquemático del campus -->
         <div class="schematic-canvas">
             <svg class="schematic-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 680" role="img" aria-label="Plano esquemático del Campus DCC Beauchef 851">
                 <defs>
@@ -48,13 +25,9 @@
                 <line x1="135" y1="168" x2="135" y2="198" stroke="#94A3B8" stroke-width="3" />
                 <line x1="181" y1="168" x2="181" y2="198" stroke="#94A3B8" stroke-width="3" />
 
-                <!-- 2. Edificio Poniente
-                     data-edificio="Poniente": map.js lo lee con
-                     edificio.dataset.edificio para saber qué edificio abrir;
-                     debe coincidir con Piso.edificio en la BD. -->
+                <!-- 2. Edificio Poniente -->
                 <g id="edificio-poniente" data-edificio="Poniente" class="interactive-building interactive-poniente" role="button" tabindex="0" aria-label="Edificio Poniente">
                     <rect class="building-bg poniente-bg" x="20" y="195" width="215" height="460" rx="18" fill="#B5BED1" stroke="#94A3B8" stroke-width="3" filter="url(#campus-card-shadow)" />
-                    <!-- Tipografía vertical: Edificio Poniente -->
                     <text x="-565" y="92" transform="rotate(-90)" font-size="38" font-weight="700" fill="#475569" letter-spacing="1px" class="building-word-light">Edificio</text>
                     <text x="-565" y="166" transform="rotate(-90)" font-size="60" font-weight="900" fill="#334155" letter-spacing="2px" class="building-word-bold">Poniente</text>
                 </g>
@@ -65,11 +38,9 @@
                     <text x="340" y="565" font-size="115" font-weight="900" fill="#8E9DB5" letter-spacing="1px">851</text>
                 </g>
 
-                <!-- 4. Edificio Norte
-                     [CAMBIO] data-edificio="Norte" (ver comentario de Poniente). -->
+                <!-- 4. Edificio Norte -->
                 <g id="edificio-norte" data-edificio="Norte" class="interactive-building interactive-norte" role="button" tabindex="0" aria-label="Edificio Norte">
                     <rect class="building-bg norte-bg" x="20" y="20" width="580" height="150" rx="18" fill="#B5BED1" stroke="#94A3B8" stroke-width="3" filter="url(#campus-card-shadow)" />
-                    <!-- Tipografía horizontal: Edificio Norte -->
                     <text x="137" y="110" font-size="44" font-weight="700" fill="#475569" letter-spacing="0.5px" class="building-word-light">Edificio</text>
                     <text x="304" y="110" font-size="64" font-weight="900" fill="#334155" letter-spacing="1px" class="building-word-bold">Norte</text>
                 </g>
@@ -77,16 +48,7 @@
         </div>
     </section>
 
-    <!-- =======================================================================
-         [NUEVO] VISTA DE PISO
-         Se muestra al hacer click en un edificio (sin .active hasta entonces).
-         - data-url-pisos / data-url-piso: URLs de la API generadas con la etiqueta url de Django
-           para no depender del prefijo con que se incluya core.urls. map.js
-           reemplaza el texto EDIFICIO (y el 0 final) por los valores reales.
-         - #floorSvg: aquí renderFloor() dibuja un <rect> por sala.
-         - #roomPanel: detalle de la sala clickeada (profesores).
-           aria-live="polite" hace que lectores de pantalla anuncien el cambio.
-         ======================================================================= -->
+    <!-- Vista interna de piso -->
     <section id="vista-piso" class="view-panel" aria-label="Plano del piso" tabindex="-1"
              data-url-pisos="{% url 'core:pisos_edificio' 'EDIFICIO' %}"
              data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}"

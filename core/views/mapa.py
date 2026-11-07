@@ -10,7 +10,7 @@ from core.services.rutas import calcular_ruta_nodos
 
 def index(request):
     """Renderiza la vista general interactiva de la aplicación."""
-    return render(request, 'core/index.html')
+    return render(request, 'index.html')
 
 
 def pisos_edificio(request, edificio):

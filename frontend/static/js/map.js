@@ -1,43 +1,19 @@
 /**
  * ==============================================================================
- * CONTROLADOR PRINCIPAL DEL MAPA INTERACTIVO DCC (BEAUCHEF 851)
- * CC4401 - Ingeniería de Software (Primavera 2026)
+ * CONTROLADOR DE INTERFAZ Y RENDERIZADO SVG DEL MAPA (U-MAPAS)
  * ==============================================================================
- *
- * Flujo: click en un edificio -> openBuilding() pide los pisos disponibles ->
- * se arma el dropdown -> se selecciona un piso -> renderFloor() pide el piso
- * al backend y dibuja las salas en el SVG.
- *
- * Marcas: [NUEVO] = código agregado, [CAMBIO] = código original modificado.
  */
 
-// Estado global de la aplicación
 const AppState = {
-  currentView: 'general',   // [CAMBIO] 'general' | 'piso'
-  currentBuilding: null,    // [NUEVO] 'Norte' | 'Poniente' (igual que Piso.edificio)
-  currentFloor: null,       // [CAMBIO] antes 3 fijo; ahora se define al abrir un edificio
-  origenRuta: null,         // sala elegida como punto de partida
+  currentView: 'general',
+  currentBuilding: null,
+  currentFloor: null,
+  origenRuta: null,
 };
 
-// [NUEVO] ---------------------------------------------------------------------
 const SVG_NS = 'http://www.w3.org/2000/svg';
-
-// Se incrementa en cada renderFloor(). Si el usuario cambia de piso rápido,
-// la respuesta de un fetch viejo puede llegar después de la nueva; el token
-// permite descartarla para no dibujar el piso equivocado.
 let renderToken = 0;
 
-// URLs de la API: vienen del template ({% url %}), con EDIFICIO como marcador.
-const vistaPisoEl = () => document.getElementById('vista-piso');
-const urlPisos = (edificio) =>
-  vistaPisoEl().dataset.urlPisos.replace('EDIFICIO', encodeURIComponent(edificio));
-const urlPiso = (edificio, numero) =>
-  vistaPisoEl().dataset.urlPiso
-    .replace('EDIFICIO', encodeURIComponent(edificio))
-    .replace(/\/0\/$/, `/${numero}/`);
-
-// Alterna entre la vista del campus y la vista de piso. El control flotante
-// del selector solo es visible en la vista de piso.
 function showView(name) {
   AppState.currentView = name;
   document.getElementById('vista-general').classList.toggle('active', name === 'general');
@@ -46,38 +22,32 @@ function showView(name) {
   if (controls) controls.hidden = name !== 'piso';
 }
 
-// Pide el piso al backend y dibuja un <g> (rect + etiqueta) por sala.
 async function renderFloor(edificio, numero) {
   const token = ++renderToken;
   let piso;
   try {
-    const res = await fetch(urlPiso(edificio, numero));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    piso = await res.json();
+    piso = await MapAPI.obtenerPlanoPiso(edificio, numero);
   } catch (err) {
     console.error('No se pudo cargar el piso:', err);
     return;
   }
-  if (token !== renderToken) return; // llegó una respuesta más nueva: descartar
+  if (token !== renderToken) return;
 
   const svg = document.getElementById('floorSvg');
   svg.replaceChildren();
-  // El viewBox usa el tamaño del lienzo guardado en Piso: las coordenadas de
-  // las salas quedan en ese sistema y el SVG escala a cualquier pantalla.
   svg.setAttribute('viewBox', `0 0 ${piso.ancho} ${piso.alto}`);
   svg.setAttribute('aria-label', `Plano del edificio ${piso.edificio}, piso ${piso.numero}`);
   document.getElementById('floorTitle').textContent =
     `Edificio ${piso.edificio} · Piso ${piso.numero}`;
   document.getElementById('roomPanel').replaceChildren();
 
-  // Las salas sin geometría (x === null) existen en la BD pero aún no se
-  // dibujan; se omiten.
-  const dibujables = piso.salas.filter((s) => s.x !== null && s.y !== null
-    && s.ancho !== null && s.alto !== null);
+  const dibujables = piso.salas.filter(
+    (s) => s.x !== null && s.y !== null && s.ancho !== null && s.alto !== null
+  );
 
   dibujables.forEach((sala) => {
     const g = document.createElementNS(SVG_NS, 'g');
-    g.setAttribute('class', `room room-${sala.tipo}`); // el CSS colorea por tipo
+    g.setAttribute('class', `room room-${sala.tipo}`);
     g.setAttribute('role', 'button');
     g.setAttribute('tabindex', '0');
     g.setAttribute('aria-label', sala.nombre);
@@ -88,7 +58,6 @@ async function renderFloor(edificio, numero) {
     rect.setAttribute('width', sala.ancho);
     rect.setAttribute('height', sala.alto);
 
-    // Etiqueta centrada en el rectángulo.
     const label = document.createElementNS(SVG_NS, 'text');
     label.setAttribute('x', sala.x + sala.ancho / 2);
     label.setAttribute('y', sala.y + sala.alto / 2);
@@ -115,14 +84,6 @@ async function renderFloor(edificio, numero) {
   }
 }
 
-// Construye la URL de la ruta reemplazando los marcadores del template.
-const urlRuta = (edificio, numero, desde, hasta) =>
-  vistaPisoEl().dataset.urlRuta
-    .replace('EDIFICIO', encodeURIComponent(edificio))
-    .replace('/0/DESDE/HASTA/',
-      `/${numero}/${encodeURIComponent(desde)}/${encodeURIComponent(hasta)}/`);
-
-// Dibuja la ruta como una línea con un círculo verde al inicio y rojo al final.
 function dibujarRuta(puntos) {
   const svg = document.getElementById('floorSvg');
   borrarRuta();
@@ -147,17 +108,19 @@ function borrarRuta() {
   document.getElementById('floorSvg').querySelector('.ruta')?.remove();
 }
 
-// Pide la ruta al backend y la dibuja. `estado` es el <p> donde se avisa al usuario.
 async function pedirRuta(hasta, estado) {
   if (!AppState.origenRuta) {
     estado.textContent = 'Primero elige un origen con "Partir desde aquí".';
     return;
   }
   try {
-    const res = await fetch(urlRuta(AppState.currentBuilding, AppState.currentFloor,
-      AppState.origenRuta, hasta));
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const { ok, data } = await MapAPI.obtenerRuta(
+      AppState.currentBuilding,
+      AppState.currentFloor,
+      AppState.origenRuta,
+      hasta
+    );
+    if (!ok) {
       estado.textContent = data.error || 'No se pudo calcular la ruta.';
       return;
     }
@@ -169,7 +132,6 @@ async function pedirRuta(hasta, estado) {
   }
 }
 
-// Agrega los botones de ruta al panel de la sala.
 function agregarControlesRuta(sala, panel) {
   const estado = document.createElement('p');
   estado.className = 'route-status';
@@ -189,13 +151,14 @@ function agregarControlesRuta(sala, panel) {
       estado.textContent = `Origen elegido: ${sala.nombre}`;
     }),
     boton('Ir hasta aquí', () => pedirRuta(sala.nombre, estado)),
-    boton('Borrar ruta', () => { borrarRuta(); estado.textContent = ''; }),
+    boton('Borrar ruta', () => {
+      borrarRuta();
+      estado.textContent = '';
+    })
   );
   panel.append(acciones, estado);
 }
 
-// Muestra el detalle de la sala clickeada. Se usa textContent (no innerHTML)
-// para que nombres de la BD nunca se interpreten como HTML.
 function showRoom(sala) {
   const panel = document.getElementById('roomPanel');
   panel.replaceChildren();
@@ -220,37 +183,25 @@ function showRoom(sala) {
 
   agregarControlesRuta(sala, panel);
 }
-// -----------------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
   const edificios = document.querySelectorAll('.interactive-building');
-
-  // Control interactivo del selector de piso
   const floorBtn = document.getElementById('floorSelectorBtn');
   const floorMenu = document.getElementById('floorDropdownMenu');
   const floorLabel = document.getElementById('currentFloorLabel');
-  // [CAMBIO] Se eliminó `const floorOptions = querySelectorAll(...)`: era una
-  // lista estática y las opciones ahora se crean dinámicamente. Se consultan
-  // en el momento con floorMenu.querySelectorAll('.floor-option').
 
   if (floorBtn && floorMenu) {
-    // [CAMBIO] toggleFloorMenu se movió arriba (antes estaba definido después
-    // del listener que lo usa); el comportamiento es el mismo.
     const toggleFloorMenu = (open) => {
       floorBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) {
         floorMenu.removeAttribute('hidden');
-        // Enfocar la opción actualmente activa
         const activeOption = floorMenu.querySelector('.floor-option.active');
-        if (activeOption) {
-          activeOption.focus();
-        }
+        if (activeOption) activeOption.focus();
       } else {
         floorMenu.setAttribute('hidden', '');
       }
     };
 
-    // Alternar visibilidad del menú desplegable
     floorBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const isExpanded = floorBtn.getAttribute('aria-expanded') === 'true';
@@ -259,20 +210,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectFloor = (option) => {
       const floorValue = option.getAttribute('data-floor');
-      const floorText = option.querySelector('span')?.textContent.trim() || option.textContent.trim();
+      const floorText =
+        option.querySelector('span')?.textContent.trim() || option.textContent.trim();
 
-      // Actualizar etiqueta del botón
-      if (floorLabel) {
-        floorLabel.textContent = floorText;
-      }
+      if (floorLabel) floorLabel.textContent = floorText;
       floorBtn.setAttribute('aria-label', `Selector de piso. ${floorText} seleccionado`);
 
-      // Actualizar clases activas y atributos ARIA
-      // [CAMBIO] consulta las opciones actuales en vez de la lista estática
-      floorMenu.querySelectorAll('.floor-option').forEach(opt => {
+      floorMenu.querySelectorAll('.floor-option').forEach((opt) => {
         opt.classList.remove('active');
         opt.removeAttribute('aria-selected');
-        // Remover cualquier check icon previo
         const existingCheck = opt.querySelector('.floor-check-icon');
         if (existingCheck) existingCheck.remove();
       });
@@ -280,8 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
       option.classList.add('active');
       option.setAttribute('aria-selected', 'true');
 
-      // Agregar icono checkmark a la opción seleccionada
-      const checkSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const checkSvg = document.createElementNS(SVG_NS, 'svg');
       checkSvg.setAttribute('class', 'floor-check-icon');
       checkSvg.setAttribute('viewBox', '0 0 24 24');
       checkSvg.setAttribute('width', '14');
@@ -292,25 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
       checkSvg.setAttribute('stroke-linecap', 'round');
       checkSvg.setAttribute('stroke-linejoin', 'round');
       checkSvg.setAttribute('aria-hidden', 'true');
-      const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      const polyline = document.createElementNS(SVG_NS, 'polyline');
       polyline.setAttribute('points', '20 6 9 17 4 12');
       checkSvg.appendChild(polyline);
       option.appendChild(checkSvg);
 
-      // Guardar estado
       AppState.currentFloor = parseInt(floorValue, 10) || floorValue;
-
-      // [NUEVO] Dibujar el piso elegido del edificio actual
       renderFloor(AppState.currentBuilding, AppState.currentFloor);
 
-      // Cerrar menú y devolver foco al botón
       toggleFloorMenu(false);
       floorBtn.focus();
     };
 
-    // [CAMBIO] Los listeners de cada opción se movieron a una función para
-    // poder aplicarlos a las opciones creadas dinámicamente. El contenido de
-    // los handlers es el original.
     const bindOption = (option) => {
       option.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -337,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
-    // [NUEVO] Reconstruye el dropdown con los pisos que devolvió la API.
     const setFloorOptions = (pisos) => {
       floorMenu.replaceChildren();
       pisos.forEach((n) => {
@@ -354,20 +291,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
-    // [NUEVO] Abre un edificio: pide sus pisos, arma el dropdown, muestra la
-    // vista de piso y selecciona uno (el 3 si existe, si no el más alto) con
-    // un click programático, que dispara selectFloor -> renderFloor.
     const openBuilding = async (edificio) => {
       let pisos;
       try {
-        const res = await fetch(urlPisos(edificio));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        ({ pisos } = await res.json());
+        ({ pisos } = await MapAPI.obtenerPisos(edificio));
       } catch (err) {
         console.error('No se pudieron cargar los pisos:', err);
         return;
       }
-      if (!pisos.length) return; // edificio sin pisos cargados (ej. Oriente)
+      if (!pisos.length) return;
 
       AppState.currentBuilding = edificio;
       setFloorOptions(pisos);
@@ -376,10 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
       floorMenu.querySelectorAll('.floor-option')[inicial].click();
     };
 
-    // [CAMBIO] Antes el handler de teclado de los edificios no hacía nada
-    // ("reservados para futura navegación"). Ahora click o Enter/Espacio
-    // abre el edificio indicado en data-edificio.
-    edificios.forEach(edificio => {
+    edificios.forEach((edificio) => {
       const abrir = () => openBuilding(edificio.dataset.edificio);
       edificio.addEventListener('click', abrir);
       edificio.addEventListener('keydown', (e) => {
@@ -390,9 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // [NUEVO] Botón para volver a la vista general del campus.
     document.getElementById('backToGeneral')?.addEventListener('click', () => {
-      renderToken++; // invalida cualquier fetch de piso en curso
+      renderToken++;
       AppState.currentBuilding = null;
       AppState.currentFloor = null;
       document.getElementById('floorSvg').replaceChildren();
@@ -401,14 +329,12 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('vista-general').focus();
     });
 
-    // Cerrar menú al hacer clic fuera
     document.addEventListener('click', (e) => {
       if (!floorBtn.contains(e.target) && !floorMenu.contains(e.target)) {
         toggleFloorMenu(false);
       }
     });
 
-    // Cerrar con Escape desde cualquier parte si está abierto
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !floorMenu.hasAttribute('hidden')) {
         toggleFloorMenu(false);
