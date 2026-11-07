@@ -1,19 +1,28 @@
-from django.db import models
+"""
+Modelos de datos principales del Mapa Interactivo DCC.
+"""
 import math
+from django.db import models
+
 
 class Piso(models.Model):
+    """Representa un nivel dentro de un edificio del campus y las dimensiones de su lienzo SVG."""
+
     edificio = models.CharField(max_length=50)
     numero = models.IntegerField()
     ancho = models.FloatField()
     alto = models.FloatField()
-    # Para evitar que hayan pisos repetidos se ocupa lo siguiente.
+
     class Meta:
         unique_together = ('edificio', 'numero')
 
     def __str__(self):
         return f"{self.edificio} - Piso {self.numero}"
 
+
 class Sala(models.Model):
+    """Representa un espacio físico (sala, oficina, laboratorio, baño o escalera) dentro de un piso."""
+
     TIPO = [
         ('sala', 'Sala'),
         ('oficina', 'Oficina'),
@@ -25,30 +34,40 @@ class Sala(models.Model):
     nombre = models.CharField(max_length=80)
     piso = models.ForeignKey(Piso, on_delete=models.CASCADE, related_name='salas')
     edificio = models.CharField(max_length=50)
-
-    # para colorear/filtrar en el mapa.
     tipo = models.CharField(max_length=20, choices=TIPO, default='sala')
 
-    # coordenadas para el mapa
+    # Coordenadas geométricas para dibujar el rectángulo en el plano SVG
     x = models.FloatField(null=True, blank=True)
     y = models.FloatField(null=True, blank=True)
     ancho = models.FloatField(null=True, blank=True)
     alto = models.FloatField(null=True, blank=True)
 
-    nodo = models.ForeignKey('Nodo', on_delete=models.SET_NULL, null=True, blank=True, related_name='salas')
+    # Nodo de acceso (puerta) asociado en el grafo de navegación
+    nodo = models.ForeignKey(
+        'Nodo', on_delete=models.SET_NULL, null=True, blank=True, related_name='salas'
+    )
 
     class Meta:
         unique_together = ('piso', 'nombre')
 
+    def save(self, *args, **kwargs):
+        if not self.edificio and self.piso_id:
+            self.edificio = self.piso.edificio
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.nombre
 
+
 class Profesor(models.Model):
+    """Representa a un académico o docente del DCC y su oficina asignada."""
+
     nombre = models.CharField(max_length=150)
-    # related_name='profesores': permite sala.profesores.all(),
-    # que usa la vista JSON para mostrar quién está en cada sala.
     oficina = models.ForeignKey(
-        Sala, on_delete=models.SET_NULL, null=True, blank=True,
+        Sala,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='profesores',
     )
     jornada = models.CharField(max_length=50)
@@ -56,7 +75,10 @@ class Profesor(models.Model):
     def __str__(self):
         return self.nombre
 
+
 class Reporte(models.Model):
+    """Representa un reporte comunitario de estado o incidencia asociado a una sala o baño."""
+
     sala = models.ForeignKey(Sala, on_delete=models.CASCADE)
     descripcion = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
@@ -65,7 +87,10 @@ class Reporte(models.Model):
     def __str__(self):
         return f"Reporte en {self.sala.nombre} - {self.estado}"
 
+
 class BloqueHorario(models.Model):
+    """Representa un bloque semanal de horario de atención para un profesor."""
+
     profesor = models.ForeignKey(Profesor, on_delete=models.CASCADE)
     dia_semana = models.CharField(max_length=20)
     hora_inicio = models.TimeField()
@@ -74,9 +99,12 @@ class BloqueHorario(models.Model):
     def __str__(self):
         return f"{self.profesor.nombre} - {self.dia_semana}"
 
+
 class Nodo(models.Model):
+    """Representa un punto de paso (puerta o intersección de pasillo) en el grafo de un piso."""
+
     piso = models.ForeignKey(Piso, on_delete=models.CASCADE, related_name='nodos')
-    nombre = models.CharField(max_length=60)   # ej: "puerta N331", "pasillo norte 250"
+    nombre = models.CharField(max_length=60)
     x = models.FloatField()
     y = models.FloatField()
 
@@ -86,7 +114,10 @@ class Nodo(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.piso})"
 
+
 class Arista(models.Model):
+    """Representa un tramo transitable entre dos nodos del grafo."""
+
     origen = models.ForeignKey(Nodo, on_delete=models.CASCADE, related_name='salientes')
     destino = models.ForeignKey(Nodo, on_delete=models.CASCADE, related_name='entrantes')
 
@@ -95,4 +126,5 @@ class Arista(models.Model):
 
     @property
     def peso(self):
-        return math.dist((self.origen.x, self.origen.y), (self.destino.x, self.destino.y))        
+        """Calcula la distancia euclidiana entre el nodo de origen y el de destino."""
+        return math.dist((self.origen.x, self.origen.y), (self.destino.x, self.destino.y))
