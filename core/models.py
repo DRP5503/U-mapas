@@ -2,7 +2,23 @@
 Modelos de datos principales del Mapa Interactivo DCC.
 """
 import math
+from django.contrib.auth.models import AbstractUser
 from django.db import models
+
+
+class User(AbstractUser):
+    """Usuario del sistema con rol institucional dentro del DCC."""
+
+    ROLES = [
+        ('PROFESOR', 'Profesor'),
+        ('ESTUDIANTE', 'Estudiante'),
+        ('AUXILIAR', 'Auxiliar de aseo'),
+    ]
+    nombre = models.CharField(max_length=30)
+    rol = models.CharField(max_length=20, choices=ROLES)
+
+    def __str__(self):
+        return f"{self.username} ({self.get_rol_display()})"
 
 
 class Piso(models.Model):

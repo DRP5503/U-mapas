@@ -4,7 +4,7 @@ Pruebas automatizadas para modelos, servicios de rutas y endpoints de la API.
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import Arista, Nodo, Piso, Profesor, Sala
+from core.models import Arista, Nodo, Piso, Profesor, Sala, User
 from core.services.rutas import calcular_ruta_nodos
 
 
@@ -56,3 +56,15 @@ class MapaRutasTests(TestCase):
         res = self.client.get(reverse('core:ruta_json', args=['Norte', 3, 'Entrada', 'N331']))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()['distancia'], 70.0)
+
+    def test_vistas_autenticacion(self):
+        res_login = self.client.get(reverse('core:login_user'))
+        self.assertEqual(res_login.status_code, 200)
+
+        res_register = self.client.get(reverse('core:register_user'))
+        self.assertEqual(res_register.status_code, 200)
+
+        user = User.objects.create_user(
+            username='estudiante1', password=' TestPass123!', nombre='Estudiante', rol='ESTUDIANTE'
+        )
+        self.assertEqual(user.rol, 'ESTUDIANTE')
