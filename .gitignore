@@ -1,4 +1,17 @@
+# Entornos virtuales
 venv/
+.venv/
+env/
+
+# Python / Django
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 db.sqlite3
+db.sqlite3-journal
+.env
+
+# Sistema operativo e IDEs
+.DS_Store
+.vscode/
+.idea/
