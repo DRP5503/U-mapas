@@ -66,11 +66,26 @@ class Command(BaseCommand):
                 piso_obj, _ = Piso.objects.get_or_create(
                     edificio=edificio, numero=numero,
                     defaults={'ancho': 1000, 'alto': 600},
-                )               
-                _, creada = Sala.objects.get_or_create(
+                )
+                defaults = {
+                    'tipo': inferir_tipo(nombre),
+                    'edificio': edificio,
+                }
+                if len(fila) >= 7:
+                    coords_raw = [c.strip() for c in fila[3:7]]
+                    if all(coords_raw):
+                        try:
+                            defaults['x'] = float(coords_raw[0])
+                            defaults['y'] = float(coords_raw[1])
+                            defaults['ancho'] = float(coords_raw[2])
+                            defaults['alto'] = float(coords_raw[3])
+                        except ValueError:
+                            self.stderr.write(f'Coordenadas inválidas en {nombre}: {coords_raw}')
+
+                _, creada = Sala.objects.update_or_create(
                     piso=piso_obj,
                     nombre=nombre,
-                    defaults={'tipo': inferir_tipo(nombre)},
+                    defaults=defaults,
                 )
                 if creada:
                     creadas += 1

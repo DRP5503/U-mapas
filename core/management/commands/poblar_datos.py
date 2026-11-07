@@ -47,3 +47,11 @@ class Command(BaseCommand):
                     }
                 )
         self.stdout.write(self.style.SUCCESS("¡Profesores cargados con éxito!"))
+
+        # 4. Cargar grafo de nodos y aristas (si existen los CSV)
+        ruta_nodos = os.path.join(settings.BASE_DIR, 'data', 'raw', 'Nodo.csv')
+        ruta_aristas = os.path.join(settings.BASE_DIR, 'data', 'raw', 'Arista.csv')
+        if os.path.exists(ruta_nodos) and os.path.exists(ruta_aristas):
+            self.stdout.write("Cargando y vinculando nodos y aristas...")
+            call_command('vincular_nodos', ruta_nodos, ruta_aristas)
+            self.stdout.write(self.style.SUCCESS("¡Grafo de rutas cargado con éxito!"))
