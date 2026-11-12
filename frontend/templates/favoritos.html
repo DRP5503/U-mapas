@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mis Lugares Favoritos | Mapa Interactivo DCC{% endblock %}
+
+{% block content %}
+<section class="favoritos-page" style="padding: 2rem; max-width: 900px; margin: 0 auto; overflow-y: auto; width: 100%;">
+    <header class="favoritos-header" style="margin-bottom: 2rem;">
+        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-main);">Mis Lugares Favoritos</h1>
+        <p style="color: var(--color-text-muted); margin-top: 0.5rem;">Haz clic en una tarjeta para ir directamente a esa ubicación en el mapa.</p>
+    </header>
+
+    {% if favoritos %}
+        <div class="favoritos-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
+            {% for fav in favoritos %}
+                <!-- Enlace que lleva al mapa con los parámetros de la sala -->
+                <a href="{% url 'core:index' %}?edificio={{ fav.sala.piso.edificio|urlencode }}&piso={{ fav.sala.piso.numero }}&sala={{ fav.sala.nombre|urlencode }}" 
+                   style="text-decoration: none; color: inherit; display: block;">
+                    <div class="favorito-card" style="background: white; padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--color-text-main);">{{ fav.sala.nombre }}</h3>
+                            <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--color-brand-teal); background: var(--color-brand-teal-light); padding: 0.2rem 0.5rem; border-radius: 4px;">
+                                {{ fav.sala.get_tipo_display }}
+                            </span>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--color-text-muted);">
+                            {{ fav.sala.piso.edificio }} · Piso {{ fav.sala.piso.numero }}
+                        </p>
+                        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">
+                            Agregado el {{ fav.fecha_agregado|date:"d M Y" }}
+                        </p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 4rem 1rem; background: white; border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+            <h2 style="font-size: 1.2rem; font-weight: 600; color: var(--color-text-main); margin-bottom: 0.5rem;">Aún no tienes lugares favoritos</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">Abre el mapa, haz click en una sala y márcala con la estrella para verla aquí.</p>
+            <a href="{% url 'core:index' %}" class="btn btn-primary" style="text-decoration: none; padding: 0.6rem 1.2rem; display: inline-block;">Ir al mapa</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

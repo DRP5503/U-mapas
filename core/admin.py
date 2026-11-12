@@ -4,7 +4,7 @@ Configuración del panel administrativo de Django para los modelos de core.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Arista, BloqueHorario, Nodo, Piso, Profesor, Reporte, Sala, User
+from .models import Arista, BloqueHorario, LugarFavorito, Nodo, Piso, Profesor, Reporte, Sala, User
 
 
 class CustomUserAdmin(UserAdmin):
@@ -50,3 +50,4 @@ admin.site.register(Reporte)
 admin.site.register(BloqueHorario)
 admin.site.register(Nodo, NodoAdmin)
 admin.site.register(Arista, AristaAdmin)
+admin.site.register(LugarFavorito)
