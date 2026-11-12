@@ -30,6 +30,12 @@ class ProfesorAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
 
 
+class ReporteAdmin(admin.ModelAdmin):
+    list_display = ('sala', 'tipo', 'estado', 'confirmaciones', 'fecha', 'expira_en')
+    list_filter = ('estado', 'tipo', 'sala__piso')
+    search_fields = ('sala__nombre', 'descripcion')
+
+
 class NodoAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'piso', 'x', 'y')
     list_filter = ('piso',)
@@ -46,7 +52,7 @@ admin.site.register(User, CustomUserAdmin)
 admin.site.register(Piso, PisoAdmin)
 admin.site.register(Sala, SalaAdmin)
 admin.site.register(Profesor, ProfesorAdmin)
-admin.site.register(Reporte)
+admin.site.register(Reporte, ReporteAdmin)
 admin.site.register(BloqueHorario)
 admin.site.register(Nodo, NodoAdmin)
 admin.site.register(Arista, AristaAdmin)

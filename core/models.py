@@ -1,9 +1,11 @@
 """
 Modelos de datos principales del Mapa Interactivo DCC.
 """
+from datetime import timedelta
 import math
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -95,13 +97,54 @@ class Profesor(models.Model):
 class Reporte(models.Model):
     """Representa un reporte comunitario de estado o incidencia asociado a una sala o baño."""
 
-    sala = models.ForeignKey(Sala, on_delete=models.CASCADE)
-    descripcion = models.TextField()
+    TIPO = [
+        ('bano_fuera_servicio', 'Baño clausurado / fuera de servicio'),
+        ('falta_insumos', 'Falta papel, jabón o aseo'),
+        ('espacio_cerrado', 'Sala o espacio cerrado sin acceso'),
+        ('equipamiento', 'Falla en proyector, audio o PCs'),
+        ('infraestructura', 'Problema de enchufes, clima o mobiliario'),
+        ('otro', 'Otro inconveniente'),
+    ]
+
+    ESTADO = [
+        ('ACTIVO', 'Activo'),
+        ('RESUELTO', 'Resuelto'),
+        ('EXPIRADO', 'Expirado'),
+    ]
+
+    TTL_HORAS_POR_TIPO = {
+        'bano_fuera_servicio': 12,
+        'falta_insumos': 6,
+        'espacio_cerrado': 8,
+        'equipamiento': 24,
+        'infraestructura': 48,
+        'otro': 12,
+    }
+
+    sala = models.ForeignKey(Sala, on_delete=models.CASCADE, related_name='reportes')
+    tipo = models.CharField(max_length=30, choices=TIPO, default='otro')
+    descripcion = models.TextField(max_length=500, blank=True, default='')
     fecha = models.DateTimeField(auto_now_add=True)
-    estado = models.CharField(max_length=20, default="Pendiente")
+    expira_en = models.DateTimeField(null=True, blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADO, default='ACTIVO')
+    confirmaciones = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def calcular_expiracion(self, desde=None):
+        """Calcula la fecha de expiración automática según la categoría del reporte."""
+        base = desde or timezone.now()
+        horas = self.TTL_HORAS_POR_TIPO.get(self.tipo, 12)
+        return base + timedelta(hours=horas)
+
+    def save(self, *args, **kwargs):
+        if not self.expira_en:
+            self.expira_en = self.calcular_expiracion()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Reporte en {self.sala.nombre} - {self.estado}"
+        return f"Reporte ({self.get_tipo_display()}) en {self.sala.nombre} - {self.estado}"
 
 
 class BloqueHorario(models.Model):
