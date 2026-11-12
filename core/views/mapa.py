@@ -1,10 +1,13 @@
 """
 Vistas y endpoints JSON asociados a la visualización del mapa, pisos y rutas.
 """
+from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 
-from core.models import Nodo, Piso, Sala
+from core.models import Nodo, Piso, Reporte, Sala
+from core.services.reportes import expirar_reportes_vencidos, serializar_reporte
 from core.services.rutas import calcular_ruta_nodos
 
 
@@ -20,9 +23,19 @@ def pisos_edificio(request, edificio):
 
 
 def piso_json(request, edificio, numero):
-    """Devuelve en JSON las dimensiones de un piso, sus salas con geometría y profesores."""
+    """Devuelve en JSON las dimensiones de un piso, sus salas con geometría, profesores y reportes activos."""
     piso = get_object_or_404(Piso, edificio__iexact=edificio, numero=numero)
-    salas = piso.salas.prefetch_related('profesores')
+    expirar_reportes_vencidos(piso=piso)
+
+    confirmados_ids = set(request.session.get('reportes_confirmados', []))
+    reportes_activos_qs = Reporte.objects.filter(
+        estado='ACTIVO', expira_en__gt=timezone.now()
+    ).select_related('sala')
+
+    salas = piso.salas.prefetch_related(
+        'profesores',
+        Prefetch('reportes', queryset=reportes_activos_qs, to_attr='reportes_activos_list'),
+    )
     return JsonResponse({
         'edificio': piso.edificio,
         'numero': piso.numero,
@@ -30,6 +43,7 @@ def piso_json(request, edificio, numero):
         'alto': piso.alto,
         'salas': [
             {
+                'id': s.id,
                 'nombre': s.nombre,
                 'tipo': s.tipo,
                 'x': s.x,
@@ -37,6 +51,10 @@ def piso_json(request, edificio, numero):
                 'ancho': s.ancho,
                 'alto': s.alto,
                 'profesores': [p.nombre for p in s.profesores.all()],
+                'reportes_activos': [
+                    serializar_reporte(r, confirmados_ids=confirmados_ids)
+                    for r in getattr(s, 'reportes_activos_list', [])
+                ],
             }
             for s in salas
         ],

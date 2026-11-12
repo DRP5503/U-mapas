@@ -10,6 +10,11 @@ from .mapa import (
     ruta_json,
     ruta_nodos,
 )
+from .reportes import (
+    confirmar_reporte_view,
+    crear_reporte_view,
+    detalle_reporte_view,
+)
 
 __all__ = [
     'index',
@@ -20,4 +25,7 @@ __all__ = [
     'piso_json',
     'ruta_nodos',
     'ruta_json',
+    'crear_reporte_view',
+    'detalle_reporte_view',
+    'confirmar_reporte_view',
 ]

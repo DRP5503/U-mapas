@@ -14,4 +14,8 @@ urlpatterns = [
     path('api/piso/<str:edificio>/<int:numero>/', views.piso_json, name='piso_json'),
     path('api/ruta/<str:edificio>/<int:numero>/<str:desde>/<str:hasta>/', views.ruta_json, name='ruta_json'),
     path('api/ruta-nodos/<str:edificio>/<int:numero>/<str:desde>/<str:hasta>/', views.ruta_nodos, name='ruta_nodos'),
+    # API de reportes comunitarios
+    path('api/reportes/crear/', views.crear_reporte_view, name='crear_reporte'),
+    path('api/reportes/<int:reporte_id>/', views.detalle_reporte_view, name='detalle_reporte'),
+    path('api/reportes/<int:reporte_id>/confirmar/', views.confirmar_reporte_view, name='confirmar_reporte'),
 ]
