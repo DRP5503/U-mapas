@@ -30,6 +30,7 @@ def piso_json(request, edificio, numero):
         'alto': piso.alto,
         'salas': [
             {
+                'id': s.id,
                 'nombre': s.nombre,
                 'tipo': s.tipo,
                 'x': s.x,
