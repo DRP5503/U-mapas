@@ -52,19 +52,15 @@ Aplicación web interactiva para orientarse dentro del Departamento de Ciencias 
    ```bash
    python manage.py poblar_datos
    ```
-5. **Asigna los nodos a las salas, si depende de los datos cargados en el paso anterior.**
-    ```bash
-   python manage.py vincular_nodos data/raw/Nodo.csv data/raw/Arista.csv
-   ```
-6. **(Opcional) Crear usuario administrador:**
+5. **(Opcional) Crear usuario administrador:**
    ```bash
    python manage.py createsuperuser
    ```
-7. **Levantar el servidor de desarrollo:**
+6. **Levantar el servidor de desarrollo:**
    ```bash
    python manage.py runserver
    ```
-8. **Ejecutar las pruebas automatizadas:**
+7. **Ejecutar las pruebas automatizadas:**
    ```bash
    python manage.py test
    ```
