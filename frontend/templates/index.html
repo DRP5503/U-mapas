@@ -54,6 +54,8 @@
              data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}"
              data-url-ruta="{% url 'core:ruta_json' 'EDIFICIO' 0 'DESDE' 'HASTA' %}"
              data-url-ruta-salas="{% url 'core:ruta_salas' 0 0 %}">
+             data-url-toggle-favorito="{% url 'core:toggle_favorito' 0 %}"
+             data-url-estado-favorito="{% url 'core:estado_favorito' 0 %}">
         <button type="button" id="backToGeneral" class="floor-back-btn">← Volver al campus</button>
         <h2 id="floorTitle" class="floor-title"></h2>
         <div class="floor-canvas">

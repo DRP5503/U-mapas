@@ -37,6 +37,28 @@
 
             <!-- 3. Controles secundarios: ubicación actual y menú -->
             <div class="navbar-right-controls">
+                
+                {% if user.is_authenticated %}
+                    <!-- Botón de Favoritos (Solo si está logueado) -->
+                    <a href="{% url 'core:mis_lugares_favoritos' %}" class="btn-favoritos-link" title="Mis favoritos" style="display:inline-flex; align-items:center; height:44px; padding:0 0.85rem; font-size:0.82rem; font-weight:600; color:var(--color-text-main); background:#FFF; border:1.5px solid var(--color-border-dark); border-radius:9999px; text-decoration:none; transition:all 0.15s; margin-right: 0.5rem;">
+                        ★ Favoritos
+                    </a>
+                    
+                    <!-- Botón de Cerrar Sesión -->
+                    <a href="{% url 'core:logout_user' %}" class="btn-logout" style="display:inline-flex; align-items:center; height:44px; padding:0 1rem; font-size:0.82rem; font-weight:600; color:#E11D48; background:#FFF1F2; border:1.5px solid #FECDD3; border-radius:9999px; text-decoration:none; transition:all 0.15s; margin-right: 0.5rem;">
+                        Salir
+                    </a>
+
+                {% else %}
+                    <!-- Botones de Login y Registro (Solo si NO está logueado) -->
+                    <a href="{% url 'core:login_user' %}" style="display:inline-flex; align-items:center; height:44px; padding:0 1rem; font-size:0.82rem; font-weight:600; color:var(--color-text-main); background:#FFF; border:1.5px solid var(--color-border-dark); border-radius:9999px; text-decoration:none; transition:all 0.15s; margin-right: 0.5rem;">
+                        Iniciar Sesión
+                    </a>
+                    <a href="{% url 'core:register_user' %}" style="display:inline-flex; align-items:center; height:44px; padding:0 1rem; font-size:0.82rem; font-weight:600; color:#FFFFFF; background:var(--color-brand-teal); border:1.5px solid var(--color-brand-teal); border-radius:9999px; text-decoration:none; transition:all 0.15s; margin-right: 0.5rem;">
+                        Registrarse
+                    </a>
+                {% endif %}
+
                 <div class="location-pill" title="Ubicación actual en el campus">
                     <svg class="location-pin-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>

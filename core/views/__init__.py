@@ -3,6 +3,7 @@ Paquete de vistas de la aplicación core.
 Re-exporta las vistas de cada dominio para mantener compatibilidad con core/urls.py.
 """
 from .auth import login_user, logout_user, register_user
+from .favoritos import estado_favorito, mis_lugares_favoritos, toggle_favorito
 from .mapa import (
     index,
     piso_json,
@@ -22,4 +23,7 @@ __all__ = [
     'ruta_nodos',
     'ruta_json',
     'ruta_salas',
+    'mis_lugares_favoritos',
+    'toggle_favorito',
+    'estado_favorito',
 ]
