@@ -11,6 +11,7 @@ const AppState = {
   origenRuta: null,
   selectedRoomName: null,
   highlightedReportId: null,
+  salaObjetivo: null,
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -496,6 +497,15 @@ async function renderFloor(edificio, numero, options = {}) {
       showRoom(salaActualizada, { highlightReportId: options.highlightReportId });
     }
   }
+
+  // Si venimos desde un favorito, abrimos la sala automáticamente
+  if (AppState.salaObjetivo) {
+    const salaEncontrada = dibujables.find(s => s.nombre === AppState.salaObjetivo);
+    if (salaEncontrada) {
+      showRoom(salaEncontrada);
+    }
+    AppState.salaObjetivo = null; // Limpiamos para no re-abrir si el usuario navega a otro piso
+  }
 }
 
 function dibujarRuta(puntos) {
@@ -894,6 +904,52 @@ function agregarSeccionReportes(sala, panel, options = {}) {
   }
 }
 
+function agregarBotonFavorito(sala, panel) {
+  if (!sala.id) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn-favorito';
+
+  const aplicarEstiloFavorito = (esFavorito) => {
+    btn.textContent = esFavorito ? '★ Quitar de favoritos' : '☆ Agregar a favoritos';
+    btn.style.backgroundColor = esFavorito ? '#FEF9C3' : '#F8FAFC';
+    btn.style.borderColor = esFavorito ? '#CA8A04' : '#CBD5E1';
+    btn.style.color = esFavorito ? '#92400E' : '#334155';
+  };
+
+  btn.style.cssText = 'padding: 0.5rem 0.9rem; font-family: inherit; font-size: 0.85rem; font-weight: 600; border: 1.5px solid #CBD5E1; border-radius: 8px; cursor: pointer; width: 100%; transition: all 0.15s ease-in-out;';
+  aplicarEstiloFavorito(false);
+  panel.appendChild(btn);
+
+  if (isAuthenticated()) {
+    MapAPI.estadoFavorito(sala.id)
+      .then((estado) => {
+        if (AppState.selectedRoomName === sala.nombre && estado?.favorito) {
+          aplicarEstiloFavorito(true);
+        }
+      })
+      .catch(() => {});
+  }
+
+  btn.addEventListener('click', async () => {
+    if (!isAuthenticated()) {
+      window.location.href = getLoginUrl();
+      return;
+    }
+    try {
+      const { ok, status, data } = await MapAPI.toggleFavorito(sala.id);
+      if (status === 401 || status === 403) {
+        window.location.href = getLoginUrl();
+        return;
+      }
+      if (ok) aplicarEstiloFavorito(Boolean(data.favorito));
+    } catch (e) {
+      console.error('Error al togglear favorito:', e);
+    }
+  });
+}
+
 function showRoom(sala, options = {}) {
   AppState.selectedRoomName = sala.nombre;
   AppState.highlightedReportId = options.highlightReportId || null;
@@ -938,7 +994,8 @@ function showRoom(sala, options = {}) {
   // 2. Tarjetas estilo Waze (si hay alertas) + botón de reportar
   agregarSeccionReportes(sala, panel, options);
 
-  // 3. Navegación al final
+  // 3. Favoritos y navegación
+  agregarBotonFavorito(sala, panel);
   agregarSeccionRuta(sala, panel);
 }
 
@@ -1068,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
-    const openBuilding = async (edificio) => {
+    const openBuilding = async (edificio, pisoObjetivo = null) => {
       let pisos;
       try {
         ({ pisos } = await MapAPI.obtenerPisos(edificio));
@@ -1081,7 +1138,14 @@ document.addEventListener('DOMContentLoaded', () => {
       AppState.currentBuilding = edificio;
       setFloorOptions(pisos);
       showView('piso');
-      const inicial = pisos.includes(3) ? pisos.indexOf(3) : 0;
+      
+      // Si venimos de un favorito con un piso específico, lo buscamos
+      let inicial = pisos.includes(3) ? pisos.indexOf(3) : 0;
+      if (pisoObjetivo) {
+        const idx = pisos.indexOf(parseInt(pisoObjetivo, 10));
+        if (idx !== -1) inicial = idx;
+      }
+      
       floorMenu.querySelectorAll('.floor-option')[inicial].click();
     };
 
@@ -1118,5 +1182,16 @@ document.addEventListener('DOMContentLoaded', () => {
         floorBtn.focus();
       }
     });
+
+    // --- NUEVO: Lógica para leer la URL y abrir el favorito automáticamente ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramEdificio = urlParams.get('edificio');
+    const paramPiso = urlParams.get('piso');
+    const paramSala = urlParams.get('sala');
+
+    if (paramEdificio) {
+      AppState.salaObjetivo = paramSala;
+      openBuilding(paramEdificio, paramPiso);
+    }
   }
 });

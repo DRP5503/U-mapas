@@ -208,3 +208,19 @@ class Arista(models.Model):
     def peso(self):
         """Calcula la distancia euclidiana entre el nodo de origen y el de destino."""
         return math.dist((self.origen.x, self.origen.y), (self.destino.x, self.destino.y))
+
+
+class LugarFavorito(models.Model):
+    """Representa una sala guardada como favorita por un usuario."""
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lugares_favoritos')
+    sala = models.ForeignKey(Sala, on_delete=models.CASCADE, related_name='favoritos')
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('usuario', 'sala')
+        ordering = ['-fecha_agregado']
+        verbose_name = 'Lugar favorito'
+        verbose_name_plural = 'Lugares favoritos'
+
+    def __str__(self):
+        return f"{self.usuario.username} → {self.sala.nombre}"
