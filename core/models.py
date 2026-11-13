@@ -98,11 +98,18 @@ class Reporte(models.Model):
     """Representa un reporte comunitario de estado o incidencia asociado a una sala o baño."""
 
     TIPO = [
-        ('bano_fuera_servicio', 'Baño clausurado / fuera de servicio'),
-        ('falta_insumos', 'Falta papel, jabón o aseo'),
-        ('espacio_cerrado', 'Sala o espacio cerrado sin acceso'),
-        ('equipamiento', 'Falla en proyector, audio o PCs'),
-        ('infraestructura', 'Problema de enchufes, clima o mobiliario'),
+        ('bano_fuera_servicio', 'Baño fuera de servicio'),
+        ('falta_papel', 'Falta papel'),
+        ('falta_jabon', 'Falta jabón'),
+        ('aseo', 'Problema de limpieza'),
+        ('espacio_cerrado', 'Espacio cerrado'),
+        ('proyector', 'Falla proyector'),
+        ('microfono', 'Falla micrófono'),
+        ('computadores', 'Falla computador'),
+        ('luz', 'Sin luz'),
+        ('aire_acondicionado', 'Falla aire acondicionado'),
+        ('gotera', 'Goteras'),
+        ('en_mantenimiento', 'En mantenimiento'),
         ('otro', 'Otro inconveniente'),
     ]
 
@@ -112,16 +119,30 @@ class Reporte(models.Model):
         ('EXPIRADO', 'Expirado'),
     ]
 
-    TTL_HORAS_POR_TIPO = {
-        'bano_fuera_servicio': 12,
-        'falta_insumos': 6,
-        'espacio_cerrado': 8,
-        'equipamiento': 24,
-        'infraestructura': 48,
-        'otro': 12,
+    TTL_MINUTOS_POR_TIPO = {
+        'espacio_cerrado': 15,
+        'otro': 30,
+        'bano_fuera_servicio': 30,
+        'proyector': 60,
+        'microfono': 60,
+        'computadores': 60,
+        'aseo': 60,
+        'falta_papel': 120,
+        'falta_jabon': 120,
+        'aire_acondicionado': 120,
+        'luz': 360,
+        'gotera': 360,
+        'en_mantenimiento': 360,
     }
 
     sala = models.ForeignKey(Sala, on_delete=models.CASCADE, related_name='reportes')
+    autor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reportes_creados',
+    )
     tipo = models.CharField(max_length=30, choices=TIPO, default='otro')
     descripcion = models.TextField(max_length=500, blank=True, default='')
     fecha = models.DateTimeField(auto_now_add=True)
@@ -135,8 +156,8 @@ class Reporte(models.Model):
     def calcular_expiracion(self, desde=None):
         """Calcula la fecha de expiración automática según la categoría del reporte."""
         base = desde or timezone.now()
-        horas = self.TTL_HORAS_POR_TIPO.get(self.tipo, 12)
-        return base + timedelta(hours=horas)
+        minutos = self.TTL_MINUTOS_POR_TIPO.get(self.tipo, 30)
+        return base + timedelta(minutes=minutos)
 
     def save(self, *args, **kwargs):
         if not self.expira_en:

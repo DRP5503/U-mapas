@@ -1,5 +1,5 @@
 """
-Endpoints JSON para la creación, consulta de detalle y confirmación de reportes.
+Endpoints JSON para la creación, consulta, confirmación y cierre de reportes.
 """
 import json
 
@@ -11,6 +11,8 @@ from core.models import Reporte, Sala
 from core.services.reportes import (
     ReporteDuplicadoError,
     ReporteInvalidoError,
+    ReportePermisoError,
+    cerrar_reporte,
     confirmar_reporte,
     crear_reporte,
     expirar_reportes_vencidos,
@@ -65,7 +67,12 @@ def crear_reporte_view(request):
     sala = get_object_or_404(Sala, pk=sala_id)
 
     try:
-        reporte = crear_reporte(sala=sala, tipo=tipo, descripcion=descripcion)
+        reporte = crear_reporte(
+            sala=sala,
+            tipo=tipo,
+            descripcion=descripcion,
+            usuario=request.user,
+        )
     except ReporteDuplicadoError as exc:
         confirmados_ids = _obtener_confirmados_sesion(request)
         return JsonResponse(
@@ -73,7 +80,9 @@ def crear_reporte_view(request):
                 'error': str(exc),
                 'codigo': 'REPORTE_DUPLICADO',
                 'reporte_existente': serializar_reporte(
-                    exc.reporte_existente, confirmados_ids=confirmados_ids
+                    exc.reporte_existente,
+                    usuario=request.user,
+                    confirmados_ids=confirmados_ids,
                 ),
             },
             status=409,
@@ -87,7 +96,11 @@ def crear_reporte_view(request):
     return JsonResponse(
         {
             'mensaje': 'Reporte publicado correctamente.',
-            'reporte': serializar_reporte(reporte, confirmados_ids=confirmados_ids),
+            'reporte': serializar_reporte(
+                reporte,
+                usuario=request.user,
+                confirmados_ids=confirmados_ids,
+            ),
         },
         status=201,
     )
@@ -96,12 +109,18 @@ def crear_reporte_view(request):
 @require_GET
 def detalle_reporte_view(request, reporte_id):
     """Devuelve en JSON el detalle completo de un reporte específico."""
-    reporte = get_object_or_404(Reporte.objects.select_related('sala'), pk=reporte_id)
+    reporte = get_object_or_404(Reporte.objects.select_related('sala', 'autor'), pk=reporte_id)
     expirar_reportes_vencidos(sala=reporte.sala)
     reporte.refresh_from_db()
     confirmados_ids = _obtener_confirmados_sesion(request)
     return JsonResponse(
-        {'reporte': serializar_reporte(reporte, confirmados_ids=confirmados_ids)}
+        {
+            'reporte': serializar_reporte(
+                reporte,
+                usuario=request.user,
+                confirmados_ids=confirmados_ids,
+            )
+        }
     )
 
 
@@ -114,12 +133,16 @@ def confirmar_reporte_view(request, reporte_id):
             status=401,
         )
 
-    reporte = get_object_or_404(Reporte.objects.select_related('sala'), pk=reporte_id)
+    reporte = get_object_or_404(Reporte.objects.select_related('sala', 'autor'), pk=reporte_id)
     confirmados_ids = _obtener_confirmados_sesion(request)
     ya_confirmado = reporte.id in confirmados_ids
 
     try:
-        reporte = confirmar_reporte(reporte, ya_confirmado=ya_confirmado)
+        reporte = confirmar_reporte(
+            reporte,
+            usuario=request.user,
+            ya_confirmado=ya_confirmado,
+        )
     except ReporteInvalidoError as exc:
         return JsonResponse({'error': str(exc)}, status=400)
 
@@ -129,6 +152,41 @@ def confirmar_reporte_view(request, reporte_id):
     return JsonResponse(
         {
             'mensaje': 'Confirmación registrada. Se renovó la vigencia del reporte.',
-            'reporte': serializar_reporte(reporte, confirmados_ids=confirmados_ids),
+            'reporte': serializar_reporte(
+                reporte,
+                usuario=request.user,
+                confirmados_ids=confirmados_ids,
+            ),
+        }
+    )
+
+
+@require_POST
+def cerrar_reporte_view(request, reporte_id):
+    """Cierra un reporte activo cuando lo solicita el usuario que lo creó."""
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {'error': 'Debes iniciar sesión para cerrar un reporte.'},
+            status=401,
+        )
+
+    reporte = get_object_or_404(Reporte.objects.select_related('sala', 'autor'), pk=reporte_id)
+
+    try:
+        reporte = cerrar_reporte(reporte, usuario=request.user)
+    except ReportePermisoError as exc:
+        return JsonResponse({'error': str(exc)}, status=403)
+    except ReporteInvalidoError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
+
+    confirmados_ids = _obtener_confirmados_sesion(request)
+    return JsonResponse(
+        {
+            'mensaje': 'Reporte cerrado correctamente.',
+            'reporte': serializar_reporte(
+                reporte,
+                usuario=request.user,
+                confirmados_ids=confirmados_ids,
+            ),
         }
     )

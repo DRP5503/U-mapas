@@ -30,7 +30,7 @@ def piso_json(request, edificio, numero):
     confirmados_ids = set(request.session.get('reportes_confirmados', []))
     reportes_activos_qs = Reporte.objects.filter(
         estado='ACTIVO', expira_en__gt=timezone.now()
-    ).select_related('sala')
+    ).select_related('sala', 'autor')
 
     salas = piso.salas.prefetch_related(
         'profesores',
@@ -52,7 +52,11 @@ def piso_json(request, edificio, numero):
                 'alto': s.alto,
                 'profesores': [p.nombre for p in s.profesores.all()],
                 'reportes_activos': [
-                    serializar_reporte(r, confirmados_ids=confirmados_ids)
+                    serializar_reporte(
+                        r,
+                        usuario=request.user,
+                        confirmados_ids=confirmados_ids,
+                    )
                     for r in getattr(s, 'reportes_activos_list', [])
                 ],
             }

@@ -31,9 +31,9 @@ class ProfesorAdmin(admin.ModelAdmin):
 
 
 class ReporteAdmin(admin.ModelAdmin):
-    list_display = ('sala', 'tipo', 'estado', 'confirmaciones', 'fecha', 'expira_en')
+    list_display = ('sala', 'tipo', 'estado', 'autor', 'confirmaciones', 'fecha', 'expira_en')
     list_filter = ('estado', 'tipo', 'sala__piso')
-    search_fields = ('sala__nombre', 'descripcion')
+    search_fields = ('sala__nombre', 'descripcion', 'autor__username')
 
 
 class NodoAdmin(admin.ModelAdmin):

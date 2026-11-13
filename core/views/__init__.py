@@ -11,6 +11,7 @@ from .mapa import (
     ruta_nodos,
 )
 from .reportes import (
+    cerrar_reporte_view,
     confirmar_reporte_view,
     crear_reporte_view,
     detalle_reporte_view,
@@ -28,4 +29,5 @@ __all__ = [
     'crear_reporte_view',
     'detalle_reporte_view',
     'confirmar_reporte_view',
+    'cerrar_reporte_view',
 ]
