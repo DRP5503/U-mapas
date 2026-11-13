@@ -33,6 +33,9 @@ const MapAPI = (() => {
         `/${numero}/${encodeURIComponent(desde)}/${encodeURIComponent(hasta)}/`
       );
 
+    // Ruta entre dos salas por id: puede cruzar pisos y edificios (viene dividida en tramos)
+  const urlRutaSalas = (desdeId, hastaId) =>
+    getVistaPisoEl().dataset.urlRutaSalas.replace(/\/0\/0\/$/, `/${desdeId}/${hastaId}/`);
   const urlToggleFavorito = (salaId) =>
     getVistaPisoEl().dataset.urlToggleFavorito.replace(/\/0\/$/, `/${salaId}/`);
 
@@ -57,12 +60,18 @@ const MapAPI = (() => {
     return { ok: res.ok, status: res.status, data };
   }
 
+async function obtenerRutaSalas(desdeId, hastaId) {
+    const res = await fetch(urlRutaSalas(desdeId, hastaId));
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
   async function toggleFavorito(salaId) {
     const res = await fetch(urlToggleFavorito(salaId), {
       method: 'POST',
       headers: { 'X-CSRFToken': getCSRFToken() },
     });
-    
+
     // Si Django nos redirige al login, detenemos esto
     if (res.redirected || res.status === 404) {
       window.location.href = '/login';
@@ -75,7 +84,7 @@ const MapAPI = (() => {
 
   async function estadoFavorito(salaId) {
     const res = await fetch(urlEstadoFavorito(salaId));
-    
+
     // Si el usuario no está logueado, no hacer nada
     if (res.redirected || res.status === 404) {
       return { favorito: false };
@@ -88,6 +97,7 @@ const MapAPI = (() => {
     obtenerPisos,
     obtenerPlanoPiso,
     obtenerRuta,
+    obtenerRutaSalas,
     toggleFavorito,
     estadoFavorito,
   };

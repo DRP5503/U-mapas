@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/pisos/<str:edificio>/', views.pisos_edificio, name='pisos_edificio'),
     path('api/piso/<str:edificio>/<int:numero>/', views.piso_json, name='piso_json'),
     path('api/ruta/<str:edificio>/<int:numero>/<str:desde>/<str:hasta>/', views.ruta_json, name='ruta_json'),
+    path('api/ruta-salas/<int:desde_id>/<int:hasta_id>/', views.ruta_salas, name='ruta_salas'),
     path('api/ruta-nodos/<str:edificio>/<int:numero>/<str:desde>/<str:hasta>/', views.ruta_nodos, name='ruta_nodos'),
 ]
