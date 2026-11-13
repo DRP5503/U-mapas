@@ -150,6 +150,7 @@ function dibujarTramo(svg, puntos, esPrimero, esUltimo) {
     c.setAttribute('cx', p.x);
     c.setAttribute('cy', p.y);
     c.setAttribute('r', 8);
+    estiloMarca(c, clase);
     return c;
   };
   g.append(
@@ -157,6 +158,30 @@ function dibujarTramo(svg, puntos, esPrimero, esUltimo) {
     marca(puntos[0], esPrimero ? 'ruta-inicio' : 'ruta-paso'),
     marca(puntos[puntos.length - 1], esUltimo ? 'ruta-fin' : 'ruta-paso')
   );
+  svg.appendChild(g);
+}
+
+/** Color y borde blanco del círculo; `clase` coincide con la variable CSS (--ruta-inicio, --ruta-fin, --ruta-paso). */
+function estiloMarca(circulo, clase) {
+  circulo.style.fill = `var(--${clase})`;
+  circulo.style.stroke = '#FFFFFF';
+  circulo.style.strokeWidth = '3';
+}
+
+/** Marca de inicio apenas se elige "Partir desde aquí", antes de que exista una ruta. */
+function dibujarOrigen(svg, edificio, piso) {
+  const o = AppState.origenRuta;
+  if (!o || o.x == null || o.y == null) return;
+  if (String(o.edificio).toLowerCase() !== String(edificio).toLowerCase() || Number(o.piso) !== Number(piso)) return;
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'ruta');
+  const c = document.createElementNS(SVG_NS, 'circle');
+  c.setAttribute('class', 'ruta-inicio');
+  c.setAttribute('cx', o.x);
+  c.setAttribute('cy', o.y);
+  c.setAttribute('r', 8);
+  estiloMarca(c, 'ruta-inicio');
+  g.appendChild(c);
   svg.appendChild(g);
 }
 
@@ -168,8 +193,11 @@ function borrarRuta() {
 function dibujarRutaActual(edificio, piso) {
   borrarRuta();
   const ruta = AppState.ruta;
-  if (!ruta) return;
   const svg = document.getElementById('floorSvg');
+  if (!ruta) {
+    dibujarOrigen(svg, edificio, piso);
+    return;
+  }
   ruta.tramos.forEach((t, i) => {
     if (t.edificio.toLowerCase() === String(edificio).toLowerCase() && Number(t.piso) === Number(piso)) {
       dibujarTramo(svg, t.puntos, i === 0, i === ruta.tramos.length - 1);
@@ -270,8 +298,12 @@ function agregarControlesRuta(sala, panel) {
         nombre: sala.nombre,
         edificio: AppState.currentBuilding,
         piso: AppState.currentFloor,
+        // posición de la puerta (nodo) de la sala, para dibujar el círculo de inicio al tiro
+        x: sala.nodo?.x ?? sala.x + sala.ancho / 2,
+        y: sala.nodo?.y ?? sala.y + sala.alto / 2,
       };
       limpiarRuta(); // la ruta anterior ya no sirve con otro origen
+      dibujarRutaActual(AppState.origenRuta.edificio, AppState.origenRuta.piso); // muestra el círculo de inicio
       estado.textContent = `Origen elegido: ${sala.nombre}`;
     }),
     boton('Ir hasta aquí', () => pedirRuta(sala, estado)),
@@ -283,27 +315,32 @@ function agregarControlesRuta(sala, panel) {
   panel.append(acciones, estado);
 }
 
-async function agregarBotonFavorito(sala, panel) {
+function aplicarEstadoFavorito(btn, activo) {
+  if (activo) {
+    btn.textContent = '★ Quitar de favoritos';
+    btn.style.backgroundColor = '#FEF9C3';
+    btn.style.borderColor = '#CA8A04';
+    btn.style.color = '#92400E';
+  } else {
+    btn.textContent = '☆ Agregar a favoritos';
+    btn.style.backgroundColor = '#F8FAFC';
+    btn.style.borderColor = '#CBD5E1';
+    btn.style.color = '#334155';
+  }
+}
+
+/** Agrega el botón de favorito. El estado ya viene con la sala (sala.favorito): no hay consulta ni espera. */
+function agregarBotonFavorito(sala, panel) {
   if (!sala.id) return;
 
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn-favorito';
-  btn.textContent = '☆ Agregar a favoritos';
-  
-  btn.style.cssText = 'margin-top: 1rem; padding: 0.5rem 0.9rem; font-family: inherit; font-size: 0.85rem; font-weight: 600; color: #334155; background-color: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 8px; cursor: pointer; width: 100%; transition: all 0.15s ease-in-out;';
-
+  btn.style.cssText = 'margin-top: 1rem; padding: 0.5rem 0.9rem; font-family: inherit; font-size: 0.85rem; font-weight: 600; color: #334155; background-color: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 8px; cursor: pointer; width: 100%;';
+  aplicarEstadoFavorito(btn, sala.favorito === true);
   panel.appendChild(btn);
-
-  try {
-    const estado = await MapAPI.estadoFavorito(sala.id);
-    if (estado.favorito) {
-      btn.textContent = '★ Quitar de favoritos';
-      btn.style.backgroundColor = '#FEF9C3';
-      btn.style.borderColor = '#CA8A04';
-      btn.style.color = '#92400E';
-    }
-  } catch (_) { /* Sin sesión o error */ }
+  // La animación se activa recién después de pintar el estado inicial: así solo se anima al hacer clic
+  requestAnimationFrame(() => { btn.style.transition = 'all 0.15s ease-in-out'; });
 
   btn.addEventListener('click', async () => {
     try {
@@ -312,16 +349,9 @@ async function agregarBotonFavorito(sala, panel) {
         window.location.href = '/login';
         return;
       }
-      if (ok && data.favorito) {
-        btn.textContent = '★ Quitar de favoritos';
-        btn.style.backgroundColor = '#FEF9C3';
-        btn.style.borderColor = '#CA8A04';
-        btn.style.color = '#92400E';
-      } else if (ok) {
-        btn.textContent = '☆ Agregar a favoritos';
-        btn.style.backgroundColor = '#F8FAFC';
-        btn.style.borderColor = '#CBD5E1';
-        btn.style.color = '#334155';
+      if (ok) {
+        sala.favorito = !!data.favorito; // la sala queda actualizada para la próxima vez que se abra
+        aplicarEstadoFavorito(btn, sala.favorito);
       }
     } catch (e) {
       console.error('Error al togglear favorito:', e);
@@ -329,13 +359,14 @@ async function agregarBotonFavorito(sala, panel) {
   });
 }
 
-async function showRoom(sala) {
+function showRoom(sala) {
   const panel = document.getElementById('roomPanel');
-  panel.replaceChildren();
+  // Todo el contenido se arma fuera de pantalla y se cambia de una sola vez: sin parpadeo
+  const contenido = document.createDocumentFragment();
 
   const titulo = document.createElement('h3');
   titulo.textContent = sala.nombre;
-  panel.appendChild(titulo);
+  contenido.appendChild(titulo);
 
   if (sala.profesores.length) {
     const lista = document.createElement('ul');
@@ -344,15 +375,16 @@ async function showRoom(sala) {
       li.textContent = nombre;
       lista.appendChild(li);
     });
-    panel.appendChild(lista);
+    contenido.appendChild(lista);
   } else {
     const vacio = document.createElement('p');
     vacio.textContent = 'Sin profesores asignados.';
-    panel.appendChild(vacio);
+    contenido.appendChild(vacio);
   }
 
-  await agregarBotonFavorito(sala, panel);
-  agregarControlesRuta(sala, panel);
+  agregarBotonFavorito(sala, contenido);
+  agregarControlesRuta(sala, contenido);
+  panel.replaceChildren(contenido);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
