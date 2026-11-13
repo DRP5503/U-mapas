@@ -898,7 +898,7 @@ function agregarSeccionReportes(sala, panel, options = {}) {
     link.href = getLoginUrl();
     link.className = 'report-btn';
     const lbl = document.createElement('span');
-    lbl.textContent = 'Inicia sesión para reportar';
+    lbl.textContent = 'Reportar';
     link.append(crearSvgIcon('otro', 16), lbl);
     panel.appendChild(link);
   }
