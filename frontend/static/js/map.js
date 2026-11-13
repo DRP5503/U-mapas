@@ -539,6 +539,7 @@ async function pedirRuta(hasta, estado, btnBorrar) {
       return;
     }
     dibujarRuta(data.puntos);
+    btnBorrar.textContent = 'Borrar ruta';
     btnBorrar.hidden = false;
     estado.textContent = `Ruta de ${data.desde} a ${data.hasta} (${data.distancia} u).`;
   } catch (err) {
@@ -559,25 +560,32 @@ function agregarSeccionRuta(sala, panel) {
   estado.setAttribute('role', 'status');
   if (AppState.origenRuta) estado.textContent = `Origen: ${AppState.origenRuta}`;
 
+  const btnDesde = document.createElement('button');
+  btnDesde.type = 'button';
+  btnDesde.setAttribute('aria-pressed', AppState.origenRuta === sala.nombre ? 'true' : 'false');
+  const lblDesde = document.createElement('span');
+  lblDesde.textContent = 'Desde aquí';
+  btnDesde.append(crearSvgIcon('origin', 14), lblDesde);
+
   const btnBorrar = document.createElement('button');
   btnBorrar.type = 'button';
   btnBorrar.className = 'link-btn';
-  btnBorrar.textContent = 'Borrar ruta';
-  btnBorrar.hidden = !hayRutaActiva();
+  btnBorrar.textContent = hayRutaActiva() ? 'Borrar ruta' : 'Limpiar origen';
+  btnBorrar.hidden = !hayRutaActiva() && !AppState.origenRuta;
   btnBorrar.addEventListener('click', () => {
     borrarRuta();
+    AppState.origenRuta = null;
+    btnDesde.setAttribute('aria-pressed', 'false');
     estado.textContent = '';
     btnBorrar.hidden = true;
   });
 
-  const btnDesde = document.createElement('button');
-  btnDesde.type = 'button';
-  const lblDesde = document.createElement('span');
-  lblDesde.textContent = 'Desde aquí';
-  btnDesde.append(crearSvgIcon('origin', 14), lblDesde);
   btnDesde.addEventListener('click', () => {
     AppState.origenRuta = sala.nombre;
+    btnDesde.setAttribute('aria-pressed', 'true');
     estado.textContent = `Origen: ${sala.nombre}`;
+    btnBorrar.textContent = hayRutaActiva() ? 'Borrar ruta' : 'Limpiar origen';
+    btnBorrar.hidden = false;
   });
 
   const btnHasta = document.createElement('button');
@@ -632,13 +640,12 @@ function crearTarjetaReporte(reporte, highlighted) {
 
   if (isAuthenticated()) {
     if (reporte.es_autor) {
+      footer.classList.add('is-author');
+
       const closeBtn = document.createElement('button');
       closeBtn.type = 'button';
       closeBtn.className = 'close-report-pill';
-      closeBtn.setAttribute('aria-label', 'Cerrar este reporte');
-      const closeText = document.createElement('span');
-      closeText.textContent = 'Cerrar';
-      closeBtn.append(crearSvgIcon('check', 15), closeText);
+      closeBtn.textContent = 'Cerrar reporte';
 
       closeBtn.addEventListener('click', async () => {
         closeBtn.disabled = true;
@@ -654,8 +661,7 @@ function crearTarjetaReporte(reporte, highlighted) {
       });
 
       const badge = document.createElement('span');
-      badge.className = 'thumb-pill';
-      badge.setAttribute('aria-pressed', 'true');
+      badge.className = 'thumb-pill is-readonly';
       badge.setAttribute('aria-label', `Confirmaciones: ${reporte.confirmaciones}`);
       badge.append(crearSvgIcon('thumb', 15), countSpan);
 
