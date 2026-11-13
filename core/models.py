@@ -148,7 +148,7 @@ class Reporte(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
     expira_en = models.DateTimeField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADO, default='ACTIVO')
-    confirmaciones = models.PositiveIntegerField(default=1)
+    confirmaciones = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-fecha']

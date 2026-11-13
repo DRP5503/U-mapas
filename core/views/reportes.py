@@ -90,7 +90,6 @@ def crear_reporte_view(request):
     except ReporteInvalidoError as exc:
         return JsonResponse({'error': str(exc)}, status=400)
 
-    _registrar_confirmado_sesion(request, reporte.id)
     confirmados_ids = _obtener_confirmados_sesion(request)
 
     return JsonResponse(

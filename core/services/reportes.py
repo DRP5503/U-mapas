@@ -117,7 +117,7 @@ def crear_reporte(sala, tipo, descripcion='', usuario=None):
         autor=autor,
         tipo=tipo,
         descripcion=texto,
-        confirmaciones=1,
+        confirmaciones=0,
     )
 
 
