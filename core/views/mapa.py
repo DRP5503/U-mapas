@@ -4,7 +4,7 @@ Vistas y endpoints JSON asociados a la visualización del mapa, pisos y rutas.
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
-from core.models import Nodo, Piso, Sala
+from core.models import LugarFavorito, Nodo, Piso, Sala
 from core.services.rutas import calcular_ruta, calcular_ruta_nodos
 
 
@@ -22,7 +22,15 @@ def pisos_edificio(request, edificio):
 def piso_json(request, edificio, numero):
     """Devuelve en JSON las dimensiones de un piso, sus salas con geometría y profesores."""
     piso = get_object_or_404(Piso, edificio__iexact=edificio, numero=numero)
-    salas = piso.salas.prefetch_related('profesores')
+    salas = piso.salas.select_related('nodo').prefetch_related('profesores')
+    # Ids de las salas de este piso que el usuario tiene en favoritos (así el panel no necesita
+    # consultar el estado sala por sala al abrirse).
+    favoritos = set()
+    if request.user.is_authenticated:
+        favoritos = set(
+            LugarFavorito.objects.filter(usuario=request.user, sala__piso=piso)
+            .values_list('sala_id', flat=True)
+        )
     return JsonResponse({
         'edificio': piso.edificio,
         'numero': piso.numero,
@@ -37,6 +45,8 @@ def piso_json(request, edificio, numero):
                 'y': s.y,
                 'ancho': s.ancho,
                 'alto': s.alto,
+                'nodo': {'x': s.nodo.x, 'y': s.nodo.y} if s.nodo else None,
+                'favorito': s.id in favoritos,
                 'profesores': [p.nombre for p in s.profesores.all()],
             }
             for s in salas

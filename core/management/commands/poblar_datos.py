@@ -26,6 +26,8 @@ def inferir_tipo_sala(nombre):
         return 'bano'
     if n.startswith('escalera'):
         return 'escalera'
+    if n.startswith('conexion') or n.startswith('conexión'):
+        return 'conexion'
     if n.startswith('laboratorio'):
         return 'lab'
     if re.fullmatch(r'[nop]\d{3}', n):
