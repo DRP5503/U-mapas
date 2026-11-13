@@ -68,3 +68,29 @@
   background: #F8FAFC;
 }
 .route-actions button:hover { background: #E2E8F0; }
+
+/* Barra de ruta: visible en el mapa general y en cada piso mientras haya origen o ruta */
+.route-bar {
+  position: absolute;
+  left: 1.5rem;
+  bottom: 1rem;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  background: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+}
+.route-bar[hidden] { display: none; }
+.route-bar-title { margin: 0 0 8px; font-size: 0.9rem; font-weight: 600; }
+.route-bar-tramos { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.route-bar button {
+  cursor: pointer;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #94A3B8;
+  border-radius: 8px;
+  background: #F8FAFC;
+  text-align: left;
+}
+.route-bar button:hover { background: #E2E8F0; }

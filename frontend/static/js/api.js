@@ -24,6 +24,10 @@ const MapAPI = (() => {
         `/${numero}/${encodeURIComponent(desde)}/${encodeURIComponent(hasta)}/`
       );
 
+    // Ruta entre dos salas por id: puede cruzar pisos y edificios (viene dividida en tramos)
+  const urlRutaSalas = (desdeId, hastaId) =>
+    getVistaPisoEl().dataset.urlRutaSalas.replace(/\/0\/0\/$/, `/${desdeId}/${hastaId}/`);
+
   async function obtenerPisos(edificio) {
     const res = await fetch(urlPisos(edificio));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -42,9 +46,16 @@ const MapAPI = (() => {
     return { ok: res.ok, status: res.status, data };
   }
 
+  async function obtenerRutaSalas(desdeId, hastaId) {
+    const res = await fetch(urlRutaSalas(desdeId, hastaId));
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
   return {
     obtenerPisos,
     obtenerPlanoPiso,
     obtenerRuta,
+    obtenerRutaSalas,
   };
 })();

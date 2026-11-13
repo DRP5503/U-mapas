@@ -52,7 +52,8 @@
     <section id="vista-piso" class="view-panel" aria-label="Plano del piso" tabindex="-1"
              data-url-pisos="{% url 'core:pisos_edificio' 'EDIFICIO' %}"
              data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}"
-             data-url-ruta="{% url 'core:ruta_json' 'EDIFICIO' 0 'DESDE' 'HASTA' %}">
+             data-url-ruta="{% url 'core:ruta_json' 'EDIFICIO' 0 'DESDE' 'HASTA' %}"
+             data-url-ruta-salas="{% url 'core:ruta_salas' 0 0 %}">
         <button type="button" id="backToGeneral" class="floor-back-btn">← Volver al campus</button>
         <h2 id="floorTitle" class="floor-title"></h2>
         <div class="floor-canvas">
@@ -60,6 +61,10 @@
         </div>
         <aside id="roomPanel" class="room-panel" aria-live="polite"></aside>
     </section>
+
+    <!-- Barra de ruta: queda fuera de las dos vistas para que se vea también en el mapa general -->
+    <div id="routeBar" class="route-bar" hidden aria-live="polite"></div>
+
 
 </div>
 {% endblock %}

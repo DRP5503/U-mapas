@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
 from core.models import Nodo, Piso, Sala
-from core.services.rutas import calcular_ruta_nodos
+from core.services.rutas import calcular_ruta, calcular_ruta_nodos
 
 
 def index(request):
@@ -30,6 +30,7 @@ def piso_json(request, edificio, numero):
         'alto': piso.alto,
         'salas': [
             {
+                'id': s.id,
                 'nombre': s.nombre,
                 'tipo': s.tipo,
                 'x': s.x,
@@ -67,3 +68,15 @@ def ruta_json(request, edificio, numero, desde, hasta):
     if sala_a.nodo is None or sala_b.nodo is None:
         return JsonResponse({'error': 'Una de las salas no tiene nodo asignado'}, status=400)
     return _respuesta_ruta(piso, sala_a.nodo, sala_b.nodo)
+
+
+def ruta_salas(request, desde_id, hasta_id):
+    """Calcula la ruta entre dos salas (por id) aunque estén en pisos o edificios distintos."""
+    sala_a = get_object_or_404(Sala, id=desde_id)
+    sala_b = get_object_or_404(Sala, id=hasta_id)
+    if sala_a.nodo is None or sala_b.nodo is None:
+        return JsonResponse({'error': 'Una de las salas no tiene nodo asignado'}, status=400)
+    resultado = calcular_ruta(sala_a, sala_b)
+    if resultado is None:
+        return JsonResponse({'error': 'No hay camino entre esos puntos'}, status=404)
+    return JsonResponse(resultado)

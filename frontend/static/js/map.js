@@ -8,11 +8,48 @@ const AppState = {
   currentView: 'general',
   currentBuilding: null,
   currentFloor: null,
-  origenRuta: null,
+  origenRuta: null, // { id, nombre, edificio, piso } de la sala de partida
+  ruta: null,       // última ruta calculada: { desde, hasta, distancia, tramos }
+  irAMapa: null,    // (edificio, piso) => abre ese mapa; se asigna al cargar la página
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 let renderToken = 0;
+
+/**
+ * Escribe `texto` dentro de un <text> SVG, partiéndolo en varias líneas
+ * (<tspan>) para que ninguna supere `anchoMax`. Queda centrado vertical y
+ * horizontalmente respecto al x/y que ya tiene el <text>.
+ */
+function ajustarTexto(label, texto, anchoMax) {
+  const x = label.getAttribute('x');
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  const lineas = [];
+  let actual = '';
+
+  palabras.forEach((palabra) => {
+    const candidata = actual ? `${actual} ${palabra}` : palabra;
+    label.textContent = candidata;
+    if (actual && label.getComputedTextLength() > anchoMax) {
+      lineas.push(actual); // la línea anterior queda cerrada
+      actual = palabra;    // y la palabra pasa a la línea de abajo
+    } else {
+      actual = candidata;
+    }
+  });
+  if (actual) lineas.push(actual);
+
+  label.textContent = '';
+  const interlineado = 1.2; // en em
+  lineas.forEach((linea, i) => {
+    const tspan = document.createElementNS(SVG_NS, 'tspan');
+    tspan.setAttribute('x', x);
+    // La 1ª línea sube la mitad del bloque para que todo quede centrado
+    tspan.setAttribute('dy', i === 0 ? `${(-(lineas.length - 1) * interlineado) / 2}em` : `${interlineado}em`);
+    tspan.textContent = linea;
+    label.appendChild(tspan);
+  });
+}
 
 function showView(name) {
   AppState.currentView = name;
@@ -64,7 +101,6 @@ async function renderFloor(edificio, numero) {
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('dominant-baseline', 'middle');
     label.setAttribute('font-size', '12');
-    label.textContent = sala.nombre;
 
     g.append(rect, label);
     g.addEventListener('click', () => showRoom(sala));
@@ -75,6 +111,8 @@ async function renderFloor(edificio, numero) {
       }
     });
     svg.appendChild(g);
+    // Debe ir DESPUÉS de appendChild: para medir el texto, el elemento tiene que estar en el DOM.
+    ajustarTexto(label, sala.nombre, sala.ancho - 8);
   });
 
   if (dibujables.length === 0) {
@@ -82,11 +120,16 @@ async function renderFloor(edificio, numero) {
     msg.textContent = 'Este piso aún no tiene plano dibujado.';
     document.getElementById('roomPanel').appendChild(msg);
   }
+
+  // renderFloor borra el SVG: si hay una ruta guardada, vuelve a dibujar el tramo de este piso
+  dibujarRutaActual(piso.edificio, piso.numero);
 }
 
-function dibujarRuta(puntos) {
-  const svg = document.getElementById('floorSvg');
-  borrarRuta();
+/**
+ * Dibuja en `svg` un tramo de la ruta. Los mapas siguen separados: cada mapa solo dibuja
+ * SU tramo. Verde = origen de la ruta, rojo = destino, ámbar = cambio de mapa.
+ */
+function dibujarTramo(svg, puntos, esPrimero, esUltimo) {
   const g = document.createElementNS(SVG_NS, 'g');
   g.setAttribute('class', 'ruta');
   const linea = document.createElementNS(SVG_NS, 'polyline');
@@ -100,31 +143,96 @@ function dibujarRuta(puntos) {
     c.setAttribute('r', 8);
     return c;
   };
-  g.append(linea, marca(puntos[0], 'ruta-inicio'), marca(puntos[puntos.length - 1], 'ruta-fin'));
+  g.append(
+    linea,
+    marca(puntos[0], esPrimero ? 'ruta-inicio' : 'ruta-paso'),
+    marca(puntos[puntos.length - 1], esUltimo ? 'ruta-fin' : 'ruta-paso')
+  );
   svg.appendChild(g);
 }
 
 function borrarRuta() {
-  document.getElementById('floorSvg').querySelector('.ruta')?.remove();
+  document.querySelectorAll('#floorSvg .ruta').forEach((el) => el.remove());
 }
 
-async function pedirRuta(hasta, estado) {
+/** Dibuja, en el piso que se está mostrando, los tramos de la ruta guardada que le tocan. */
+function dibujarRutaActual(edificio, piso) {
+  borrarRuta();
+  const ruta = AppState.ruta;
+  if (!ruta) return;
+  const svg = document.getElementById('floorSvg');
+  ruta.tramos.forEach((t, i) => {
+    if (t.edificio.toLowerCase() === String(edificio).toLowerCase() && Number(t.piso) === Number(piso)) {
+      dibujarTramo(svg, t.puntos, i === 0, i === ruta.tramos.length - 1);
+    }
+  });
+}
+
+/** Quita la ruta (el origen se mantiene para poder pedir otra). */
+function limpiarRuta() {
+  AppState.ruta = null;
+  borrarRuta();
+  renderRouteBar();
+}
+
+/**
+ * Barra de ruta, fuera de las vistas: persiste al volver al mapa general o cambiar de piso.
+ * Muestra origen/ruta y un botón por cada mapa por el que pasa la ruta.
+ */
+function renderRouteBar() {
+  const bar = document.getElementById('routeBar');
+  bar.replaceChildren();
+  const { origenRuta, ruta } = AppState;
+  if (!origenRuta && !ruta) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+
+  const titulo = document.createElement('p');
+  titulo.className = 'route-bar-title';
+  titulo.textContent = ruta
+    ? `Ruta: ${ruta.desde} → ${ruta.hasta}`
+    : `Origen: ${origenRuta.nombre} (${origenRuta.edificio} · Piso ${origenRuta.piso})`;
+  bar.appendChild(titulo);
+
+  if (ruta) {
+    const lista = document.createElement('div');
+    lista.className = 'route-bar-tramos';
+    ruta.tramos.forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = `${t.edificio} · Piso ${t.piso}`;
+      b.addEventListener('click', () => AppState.irAMapa?.(t.edificio, t.piso));
+      lista.appendChild(b);
+    });
+    bar.appendChild(lista);
+  }
+
+  const quitar = document.createElement('button');
+  quitar.type = 'button';
+  quitar.textContent = 'Quitar origen y ruta';
+  quitar.addEventListener('click', () => {
+    AppState.origenRuta = null;
+    limpiarRuta();
+  });
+  bar.appendChild(quitar);
+}
+
+async function pedirRuta(sala, estado) {
   if (!AppState.origenRuta) {
     estado.textContent = 'Primero elige un origen con "Partir desde aquí".';
     return;
   }
   try {
-    const { ok, data } = await MapAPI.obtenerRuta(
-      AppState.currentBuilding,
-      AppState.currentFloor,
-      AppState.origenRuta,
-      hasta
-    );
+    const { ok, data } = await MapAPI.obtenerRutaSalas(AppState.origenRuta.id, sala.id);
     if (!ok) {
       estado.textContent = data.error || 'No se pudo calcular la ruta.';
       return;
     }
-    dibujarRuta(data.puntos);
+    AppState.ruta = data;
+    dibujarRutaActual(AppState.currentBuilding, AppState.currentFloor);
+    renderRouteBar();
     estado.textContent = `Ruta de ${data.desde} a ${data.hasta} (${data.distancia} unidades).`;
   } catch (err) {
     console.error('No se pudo pedir la ruta:', err);
@@ -135,7 +243,7 @@ async function pedirRuta(hasta, estado) {
 function agregarControlesRuta(sala, panel) {
   const estado = document.createElement('p');
   estado.className = 'route-status';
-  if (AppState.origenRuta) estado.textContent = `Origen elegido: ${AppState.origenRuta}`;
+  if (AppState.origenRuta) estado.textContent = `Origen elegido: ${AppState.origenRuta.nombre}`;
   const acciones = document.createElement('div');
   acciones.className = 'route-actions';
   const boton = (texto, onClick) => {
@@ -147,12 +255,19 @@ function agregarControlesRuta(sala, panel) {
   };
   acciones.append(
     boton('Partir desde aquí', () => {
-      AppState.origenRuta = sala.nombre;
+      // Se guarda también el edificio y el piso: el origen puede estar en otro mapa que el destino
+      AppState.origenRuta = {
+        id: sala.id,
+        nombre: sala.nombre,
+        edificio: AppState.currentBuilding,
+        piso: AppState.currentFloor,
+      };
+      limpiarRuta(); // la ruta anterior ya no sirve con otro origen
       estado.textContent = `Origen elegido: ${sala.nombre}`;
     }),
-    boton('Ir hasta aquí', () => pedirRuta(sala.nombre, estado)),
+    boton('Ir hasta aquí', () => pedirRuta(sala, estado)),
     boton('Borrar ruta', () => {
-      borrarRuta();
+      limpiarRuta();
       estado.textContent = '';
     })
   );
@@ -291,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     };
 
-    const openBuilding = async (edificio) => {
+    const openBuilding = async (edificio, pisoInicial) => {
       let pisos;
       try {
         ({ pisos } = await MapAPI.obtenerPisos(edificio));
@@ -304,9 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
       AppState.currentBuilding = edificio;
       setFloorOptions(pisos);
       showView('piso');
-      const inicial = pisos.includes(3) ? pisos.indexOf(3) : 0;
+      const preferido = pisos.includes(Number(pisoInicial)) ? Number(pisoInicial) : 3;
+      const inicial = pisos.includes(preferido) ? pisos.indexOf(preferido) : 0;
       floorMenu.querySelectorAll('.floor-option')[inicial].click();
     };
+
+    AppState.irAMapa = (edificio, piso) => openBuilding(edificio, piso);
 
     edificios.forEach((edificio) => {
       const abrir = () => openBuilding(edificio.dataset.edificio);
