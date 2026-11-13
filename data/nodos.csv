@@ -41,6 +41,8 @@ Baño_m,3,Norte,698,347
 Baño_m Pasillo,3,Norte,698,378
 Auditorio Ramón Picarte,3,Norte,834,260
 Auditorio Ramón Picarte Pasillo,3,Norte,805,260
+Conexion,3,Norte,51,420
+Conexion Pasillo,3,Norte,51,378
 N303,3,Norte,139,402
 N303 Pasillo,3,Norte,139,378
 N304,3,Norte,194,402
@@ -73,3 +75,92 @@ N317,3,Norte,916,402
 N317 Pasillo,3,Norte,916,378
 N318,3,Norte,972,402
 N318 Pasillo,3,Norte,972,378
+Laboratorio Toqui,2,Poniente,385,219
+Laboratorio Toqui Pasillo,2,Poniente,385,292
+Escalera,2,Poniente,556,219
+Escalera Pasillo,2,Poniente,556,292
+Printer,2,Poniente,687,219
+Auxiliares Aseo,2,Poniente,742,219
+Jefa Estudios,2,Poniente,797,219
+Secretaría Docente,2,Poniente,880,185
+P222,2,Poniente,83,348
+P222 Pasillo,2,Poniente,83,292
+P221,2,Poniente,138,348
+P221 Pasillo,2,Poniente,138,292
+P220,2,Poniente,193,348
+P220 Pasillo,2,Poniente,193,292
+P219,2,Poniente,248,348
+P219 Pasillo,2,Poniente,248,292
+P218,2,Poniente,303,348
+P218 Pasillo,2,Poniente,303,292
+P217,2,Poniente,358,348
+P217 Pasillo,2,Poniente,358,292
+P216,2,Poniente,413,348
+P216 Pasillo,2,Poniente,413,292
+P215,2,Poniente,468,348
+P215 Pasillo,2,Poniente,468,292
+P214,2,Poniente,523,348
+P214 Pasillo,2,Poniente,523,292
+P213,2,Poniente,578,348
+P213 Pasillo,2,Poniente,578,292
+P212,2,Poniente,633,348
+P212 Pasillo,2,Poniente,633,292
+P211,2,Poniente,687,348
+P211 Pasillo,2,Poniente,687,292
+P210,2,Poniente,742,348
+P210 Pasillo,2,Poniente,742,292
+P209,2,Poniente,797,348
+P209 Pasillo,2,Poniente,797,292
+Sala Reuniones,2,Poniente,880,348
+Sala Reuniones Pasillo,2,Poniente,880,292
+Cocina,2,Poniente,921,305
+Cocina Pasillo,2,Poniente,921,292
+Laboratorio Eniac,3,Poniente,110,220
+Laboratorio Eniac Pasillo,3,Poniente,110,292
+Laboratorio Colossus,3,Poniente,220,220
+Laboratorio Colossus Pasillo,3,Poniente,220,292
+Sala Phillipe 'Algorithmix' Flajolet,3,Poniente,330,279
+Sala Phillipe 'Algorithmix' Flajolet Pasillo,3,Poniente,330,292
+Laboratorio Anakena,3,Poniente,440,279
+Laboratorio Anakena Pasillo,3,Poniente,440,292
+Escalera,3,Poniente,556,219
+Escalera Pasillo,3,Poniente,556,292
+Printer,3,Poniente,687,219
+Sala Ada Lovelace,3,Poniente,769,219
+Sala Ada Lovelace Pasillo,3,Poniente,769,292
+Sala Grace Hopper,3,Poniente,880,219
+P323,3,Poniente,83,348
+P323 Pasillo,3,Poniente,83,292
+P322,3,Poniente,138,348
+P322 Pasillo,3,Poniente,138,292
+P321,3,Poniente,193,348
+P321 Pasillo,3,Poniente,193,292
+P320,3,Poniente,248,348
+P320 Pasillo,3,Poniente,248,292
+P319,3,Poniente,303,348
+P319 Pasillo,3,Poniente,303,292
+P318,3,Poniente,358,348
+P318 Pasillo,3,Poniente,358,292
+P317,3,Poniente,413,348
+P317 Pasillo,3,Poniente,413,292
+P316,3,Poniente,468,348
+P316 Pasillo,3,Poniente,468,292
+P315,3,Poniente,523,348
+P315 Pasillo,3,Poniente,523,292
+P314,3,Poniente,578,348
+P314 Pasillo,3,Poniente,578,292
+P313,3,Poniente,633,348
+P313 Pasillo,3,Poniente,633,292
+P312,3,Poniente,687,348
+P312 Pasillo,3,Poniente,687,292
+P311,3,Poniente,742,348
+P311 Pasillo,3,Poniente,742,292
+P310,3,Poniente,797,348
+P310 Pasillo,3,Poniente,797,292
+Sistemas,3,Poniente,880,348
+Sistemas Pasillo,3,Poniente,880,292
+Cocina,3,Poniente,921,305
+Cocina Pasillo,3,Poniente,921,292
+Conexion,3,Poniente,1039,470
+Conexion Pasillo,3,Poniente,987, 470
+Conexion Entrada,3,Poniente,987, 292

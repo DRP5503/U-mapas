@@ -47,6 +47,7 @@ class Sala(models.Model):
         ('lab', 'Laboratorio'),
         ('bano', 'Baño'),
         ('escalera', 'Escalera'),
+        ('conexion', 'Conexión'),
         ('otro', 'Otro'),
     ]
     nombre = models.CharField(max_length=80)

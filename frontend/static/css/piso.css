@@ -15,6 +15,24 @@
   white-space: nowrap !important;
 }
 
+/* --- Paleta del plano (alineada con style.css: azul marino primario, teal de marca y rosa de acento) ---
+   Cada tipo tiene un borde suave (reposo) y uno saturado (hover / seleccionada). */
+:root {
+  --room-fill: #E2E8F0;       /* otro (neutro) */
+  --room-stroke: #C0CAD8;     --room-stroke-active: #94A3B8;
+
+  --tipo-sala-fill: #DBE4FF;      --tipo-sala-stroke: #A9BBEA;     --tipo-sala-stroke-active: #1E3A8A;     /* sala: azul marino */
+  --tipo-oficina-fill: #B9F0E8;   --tipo-oficina-stroke: #7FCFC3;  --tipo-oficina-stroke-active: #0D9488;  /* oficina: teal */
+  --tipo-lab-fill: #FFD6E0;       --tipo-lab-stroke: #F0A3B8;      --tipo-lab-stroke-active: #E11D48;      /* laboratorio: rosa */
+  --tipo-bano-fill: #BAE6FD;      --tipo-bano-stroke: #7CC0E8;     --tipo-bano-stroke-active: #0284C7;     /* baño: celeste */
+  --tipo-purpura-fill: #DDD0FD;   --tipo-purpura-stroke: #B8A2F0;  --tipo-purpura-stroke-active: #7C3AED;  /* escalera y conexión */
+
+  --ruta-color: #DC2626;      /* línea de ruta: roja */
+  --ruta-inicio: #7F9C8C;     /* inicio: verde grisáceo (más apagado) */
+  --ruta-fin: #E11D48;
+  --ruta-paso: #7C3AED;       /* mismo morado que escalera/conexión */
+}
+
 .floor-title { margin: 0.5rem 0; }
 
 .floor-back-btn {
@@ -28,21 +46,33 @@
 .floor-canvas { width: 100%; }
 .floor-svg { width: 100%; height: auto; max-height: 70vh; overflow: visible; }
 
-/* Salas: cada <g class="room room-<tipo>"> contiene un <rect> y un <text>. */
-.room rect { fill: #E2E8F0; stroke: #94A3B8; stroke-width: 2; cursor: pointer; }
-.room text { pointer-events: none; fill: #334155; } /* el click lo recibe el rect */
-.room:hover rect { fill: #BFDBFE; }
+/* Salas: cada <g class="room room-<tipo>"> contiene un <rect> y un <text>.
+   Cada tipo solo define dos variables (--room-fill / --room-stroke) y el rect las usa. */
+.room rect {
+  fill: var(--room-fill);
+  stroke: var(--room-stroke);
+  stroke-width: 2;
+  cursor: pointer;
+  transition: filter 0.15s ease, stroke-width 0.15s ease;
+}
+.room text { pointer-events: none; fill: #1E293B; font-weight: 500; } /* el click lo recibe el rect */
+
+/* Hover: se mantiene el color del tipo, solo se oscurece un poco y se engrosa el borde */
+.room:hover rect,
+.room:focus rect { filter: brightness(0.93); stroke: var(--room-stroke-active); stroke-width: 3; }
 .room:focus { outline: none; }
-.room:focus-visible rect { stroke: #2563EB; stroke-width: 3; }
+.room:focus-visible rect { stroke: var(--room-stroke-active); stroke-width: 3.5; }
 
 /* Colores por tipo (Sala.tipo) */
-.room-bano rect { fill: #FDE68A; }
-.room-escalera rect { fill: #CBD5E1; }
-.room-lab rect { fill: #C7D2FE; }
-.room-oficina rect { fill: #DCFCE7; }
+.room-sala     { --room-fill: var(--tipo-sala-fill);     --room-stroke: var(--tipo-sala-stroke); --room-stroke-active: var(--tipo-sala-stroke-active); }
+.room-oficina  { --room-fill: var(--tipo-oficina-fill);  --room-stroke: var(--tipo-oficina-stroke); --room-stroke-active: var(--tipo-oficina-stroke-active); }
+.room-lab      { --room-fill: var(--tipo-lab-fill);      --room-stroke: var(--tipo-lab-stroke); --room-stroke-active: var(--tipo-lab-stroke-active); }
+.room-bano     { --room-fill: var(--tipo-bano-fill);     --room-stroke: var(--tipo-bano-stroke); --room-stroke-active: var(--tipo-bano-stroke-active); }
+.room-escalera,
+.room-conexion { --room-fill: var(--tipo-purpura-fill);  --room-stroke: var(--tipo-purpura-stroke); --room-stroke-active: var(--tipo-purpura-stroke-active); }
 
 /* Sala seleccionada: se mantiene marcada mientras su panel está abierto */
-.room.room-selected rect { fill: #BFDBFE; stroke: #2563EB; stroke-width: 3; }
+.room.room-selected rect { filter: brightness(0.91); stroke: var(--room-stroke-active, #2563EB); stroke-width: 3.5; }
 
 /* ==========================================================================
    Pines de reporte en el plano (estilo Waze)
@@ -61,11 +91,37 @@
 .report-pin .pin-count { fill: #1F2937; stroke: #FFFFFF; stroke-width: 1.5; }
 .report-pin .pin-count-text { fill: #FFFFFF; pointer-events: none; }
 
-/* Rutas */
+/* --- Ruta --- */
 .ruta { pointer-events: none; }  /* el click pasa a las salas de abajo */
-.ruta-linea { fill: none; stroke: #2563EB; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
-.ruta-inicio { fill: #16A34A; }
-.ruta-fin { fill: #DC2626; }
+
+/* Tres capas: borde blanco (contraste sobre cualquier color de sala), línea y puntitos que fluyen */
+.ruta-borde { fill: none; stroke: #FFFFFF; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+.ruta-linea { fill: none; stroke: var(--ruta-color); stroke-width: 5; stroke-linecap: butt; stroke-linejoin: round; stroke-dasharray: 12 8; }  /* segmentada */
+.ruta-flujo {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1 14;                  /* período = 15 */
+  animation: ruta-flujo 0.9s linear infinite;
+}
+@keyframes ruta-flujo { to { stroke-dashoffset: -15; } }  /* los puntitos avanzan en el sentido del recorrido */
+@media (prefers-reduced-motion: reduce) { .ruta-flujo { animation: none; } }
+
+/* Marcas: círculo + etiqueta ("Inicio", "Destino", "Sigue en ...") */
+.ruta-marca circle, .ruta circle { stroke: #FFFFFF; stroke-width: 3; }
+.ruta-marca .ruta-etiqueta rect { stroke: #FFFFFF; stroke-width: 2; }
+.ruta-etiqueta text {
+  fill: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+.ruta-inicio circle, circle.ruta-inicio, .ruta-inicio .ruta-etiqueta rect { fill: var(--ruta-inicio); }
+.ruta-fin circle, circle.ruta-fin, .ruta-fin .ruta-etiqueta rect { fill: var(--ruta-fin); }
+.ruta-paso circle, circle.ruta-paso, .ruta-paso .ruta-etiqueta rect { fill: var(--ruta-paso); }
 
 /* ==========================================================================
    Panel de la sala
@@ -480,3 +536,29 @@
 }
 .link-btn:hover { color: #0F172A; text-decoration: underline; }
 .link-btn[hidden] { display: none; }
+
+/* Barra de ruta: visible en el mapa general y en cada piso mientras haya origen o ruta */
+.route-bar {
+  position: fixed;   /* anclada a la ventana (no al contenedor centrado de 1440px) para quedar lo más a la izquierda posible */
+  left: 0.75rem;
+  bottom: 0.75rem;
+  max-width: 320px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  background: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+}
+.route-bar[hidden] { display: none; }
+.route-bar-title { margin: 0 0 8px; font-size: 0.9rem; font-weight: 600; }
+.route-bar-tramos { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.route-bar button {
+  cursor: pointer;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #94A3B8;
+  border-radius: 8px;
+  background: #F8FAFC;
+  text-align: left;
+}
+.route-bar button:hover { background: #E2E8F0; }

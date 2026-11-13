@@ -10,6 +10,7 @@ from .mapa import (
     pisos_edificio,
     ruta_json,
     ruta_nodos,
+    ruta_salas,
 )
 from .reportes import (
     cerrar_reporte_view,
@@ -27,6 +28,7 @@ __all__ = [
     'piso_json',
     'ruta_nodos',
     'ruta_json',
+    'ruta_salas',
     'mis_lugares_favoritos',
     'toggle_favorito',
     'estado_favorito',

@@ -6,9 +6,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
-from core.models import Nodo, Piso, Reporte, Sala
+from core.models import LugarFavorito, Nodo, Piso, Reporte, Sala
 from core.services.reportes import expirar_reportes_vencidos, serializar_reporte
-from core.services.rutas import calcular_ruta_nodos
+from core.services.rutas import calcular_ruta, calcular_ruta_nodos
 
 
 def index(request):
@@ -32,10 +32,18 @@ def piso_json(request, edificio, numero):
         estado='ACTIVO', expira_en__gt=timezone.now()
     ).select_related('sala', 'autor')
 
-    salas = piso.salas.prefetch_related(
+    salas = piso.salas.select_related('nodo').prefetch_related(
         'profesores',
         Prefetch('reportes', queryset=reportes_activos_qs, to_attr='reportes_activos_list'),
     )
+    # Ids de las salas de este piso que el usuario tiene en favoritos (así el panel no necesita
+    # consultar el estado sala por sala al abrirse).
+    favoritos = set()
+    if request.user.is_authenticated:
+        favoritos = set(
+            LugarFavorito.objects.filter(usuario=request.user, sala__piso=piso)
+            .values_list('sala_id', flat=True)
+        )
     return JsonResponse({
         'edificio': piso.edificio,
         'numero': piso.numero,
@@ -50,6 +58,8 @@ def piso_json(request, edificio, numero):
                 'y': s.y,
                 'ancho': s.ancho,
                 'alto': s.alto,
+                'nodo': {'x': s.nodo.x, 'y': s.nodo.y} if s.nodo else None,
+                'favorito': s.id in favoritos,
                 'profesores': [p.nombre for p in s.profesores.all()],
                 'reportes_activos': [
                     serializar_reporte(
@@ -89,3 +99,15 @@ def ruta_json(request, edificio, numero, desde, hasta):
     if sala_a.nodo is None or sala_b.nodo is None:
         return JsonResponse({'error': 'Una de las salas no tiene nodo asignado'}, status=400)
     return _respuesta_ruta(piso, sala_a.nodo, sala_b.nodo)
+
+
+def ruta_salas(request, desde_id, hasta_id):
+    """Calcula la ruta entre dos salas (por id) aunque estén en pisos o edificios distintos."""
+    sala_a = get_object_or_404(Sala, id=desde_id)
+    sala_b = get_object_or_404(Sala, id=hasta_id)
+    if sala_a.nodo is None or sala_b.nodo is None:
+        return JsonResponse({'error': 'Una de las salas no tiene nodo asignado'}, status=400)
+    resultado = calcular_ruta(sala_a, sala_b)
+    if resultado is None:
+        return JsonResponse({'error': 'No hay camino entre esos puntos'}, status=404)
+    return JsonResponse(resultado)

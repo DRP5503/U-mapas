@@ -55,6 +55,7 @@
              data-url-pisos="{% url 'core:pisos_edificio' 'EDIFICIO' %}"
              data-url-piso="{% url 'core:piso_json' 'EDIFICIO' 0 %}"
              data-url-ruta="{% url 'core:ruta_json' 'EDIFICIO' 0 'DESDE' 'HASTA' %}"
+             data-url-ruta-salas="{% url 'core:ruta_salas' 0 0 %}"
              data-url-toggle-favorito="{% url 'core:toggle_favorito' 0 %}"
              data-url-estado-favorito="{% url 'core:estado_favorito' 0 %}"
              data-url-crear-reporte="{% url 'core:crear_reporte' %}"
@@ -68,6 +69,10 @@
         </div>
         <aside id="roomPanel" class="room-panel" aria-live="polite"></aside>
     </section>
+
+    <!-- Barra de ruta: queda fuera de las dos vistas para que se vea también en el mapa general -->
+    <div id="routeBar" class="route-bar" hidden aria-live="polite"></div>
+
 
 </div>
 {% endblock %}
