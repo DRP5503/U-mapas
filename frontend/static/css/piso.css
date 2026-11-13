@@ -3,6 +3,18 @@
    control flotante realmente se oculte fuera de la vista de piso. */
 .map-floating-controls[hidden] { display: none; }
 
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
 .floor-title { margin: 0.5rem 0; }
 
 .floor-back-btn {
@@ -14,13 +26,12 @@
 }
 
 .floor-canvas { width: 100%; }
-.floor-svg { width: 100%; height: auto; max-height: 70vh; }
+.floor-svg { width: 100%; height: auto; max-height: 70vh; overflow: visible; }
 
 /* Salas: cada <g class="room room-<tipo>"> contiene un <rect> y un <text>. */
 .room rect { fill: #E2E8F0; stroke: #94A3B8; stroke-width: 2; cursor: pointer; }
 .room text { pointer-events: none; fill: #334155; } /* el click lo recibe el rect */
-.room:hover rect,
-.room:focus rect { fill: #BFDBFE; }
+.room:hover rect { fill: #BFDBFE; }
 .room:focus { outline: none; }
 .room:focus-visible rect { stroke: #2563EB; stroke-width: 3; }
 
@@ -30,41 +41,303 @@
 .room-lab rect { fill: #C7D2FE; }
 .room-oficina rect { fill: #DCFCE7; }
 
-.room-panel { margin-top: 1rem; }
+/* Sala seleccionada: se mantiene marcada mientras su panel está abierto */
+.room.room-selected rect { fill: #BFDBFE; stroke: #2563EB; stroke-width: 3; }
 
+/* ==========================================================================
+   Pines de reporte en el plano (estilo Waze)
+   ========================================================================== */
+.report-pin { cursor: pointer; }
+.report-pin .pin-bg {
+  stroke: #FFFFFF;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.35));
+}
+.report-pin:hover .pin-bg { stroke-width: 3.5; }
+.report-pin.sev-critica .pin-bg { fill: #EF4444; }
+.report-pin.sev-critica .pin-icon { color: #FFFFFF; }
+.report-pin.sev-media .pin-bg { fill: #FACC15; }
+.report-pin.sev-media .pin-icon { color: #1F2937; }
+.report-pin .pin-count { fill: #1F2937; stroke: #FFFFFF; stroke-width: 1.5; }
+.report-pin .pin-count-text { fill: #FFFFFF; pointer-events: none; }
+
+/* Rutas */
 .ruta { pointer-events: none; }  /* el click pasa a las salas de abajo */
 .ruta-linea { fill: none; stroke: #2563EB; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .ruta-inicio { fill: #16A34A; }
 .ruta-fin { fill: #DC2626; }
-.route-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.route-status { margin-top: 8px; font-size: 0.9rem; }
 
-/* Panel de la sala: flotante a la derecha, sin mover el mapa ni nada más */
+/* ==========================================================================
+   Panel de la sala
+   ========================================================================== */
 .room-panel {
   position: fixed;
   top: 50%;
   right: 1.5rem;
   transform: translateY(-50%);
-  width: 260px;
-  max-height: 70vh;
+  width: 290px;
+  max-height: 74vh;
   overflow-y: auto;
   padding: 1rem;
-  border: 1px solid #CBD5E1;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  background: #FFFFFF;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  z-index: 20;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-panel:empty { display: none; }
+
+.room-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-panel h3 { margin: 0; font-size: 1.15rem; line-height: 1.2; color: #0F172A; }
+.room-type { display: block; margin-top: 2px; font-size: 0.78rem; color: #64748B; }
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: #F1F5F9;
+  color: #475569;
+  cursor: pointer;
+}
+.icon-btn:hover { background: #E2E8F0; color: #0F172A; }
+
+.room-prof-list { margin: 0; padding-left: 1.1rem; color: #334155; }
+
+/* Tarjetas de reporte */
+.report-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.report-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #1F2937;
+  color: #F8FAFC;
+}
+
+.report-card.is-highlighted { animation: reportFlash 1.2s ease-out; }
+@keyframes reportFlash {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.9); }
+  100% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+}
+
+.report-card-title { margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+.report-card-meta { font-size: 0.76rem; color: #CBD5E1; }
+
+.report-card-icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 3px solid #FFFFFF;
+}
+.report-card-icon.sev-critica { background: #EF4444; color: #FFFFFF; }
+.report-card-icon.sev-media { background: #FACC15; color: #1F2937; }
+
+.report-card-desc {
+  grid-column: 1 / -1;
+  margin: 8px 0 0;
+  color: #E2E8F0;
+  word-break: break-word;
+}
+
+.report-card-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.thumb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #3B82F6;
+  color: #FFFFFF;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.thumb-pill:hover { background: #2563EB; }
+.thumb-pill[aria-pressed="true"] { background: #DBEAFE; color: #1D4ED8; cursor: default; }
+
+.close-report-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #047857;
+  color: #FFFFFF;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.close-report-pill:hover { background: #065F46; }
+.close-report-pill:disabled { opacity: 0.6; cursor: default; }
+
+/* Botón de reportar */
+.report-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1.5px solid #F59E0B;
+  border-radius: 999px;
+  background: #FFFBEB;
+  color: #92400E;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.report-btn:hover { background: #FEF3C7; }
+.report-btn[hidden] { display: none; }
+
+/* Formulario de reporte: selección por íconos */
+.report-form { display: flex; flex-direction: column; gap: 8px; }
+.report-form[hidden] { display: none; }
+
+.category-grid {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.category-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 1.5px solid #E2E8F0;
   border-radius: 12px;
   background: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 20;
-}
-
-.room-panel:empty { display: none; }   /* sin sala elegida, no se ve la caja vacía */
-.room-panel h3 { margin-top: 0; }
-
-.route-actions { flex-direction: column; }
-.route-actions button {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+  line-height: 1.15;
   cursor: pointer;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid #94A3B8;
-  border-radius: 8px;
-  background: #F8FAFC;
 }
-.route-actions button:hover { background: #E2E8F0; }
+.category-tile:hover { background: #F8FAFC; }
+.category-tile:has(input:checked) { border-color: #3B82F6; background: #EFF6FF; color: #1D4ED8; }
+.category-tile:has(input:focus-visible) { outline: 2px solid #2563EB; outline-offset: 2px; }
+
+.category-tile-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+}
+.category-tile-icon.sev-critica { background: #EF4444; color: #FFFFFF; }
+.category-tile-icon.sev-media { background: #FACC15; color: #1F2937; }
+
+.report-form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.report-form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #94A3B8;
+  border-radius: 10px;
+  font: inherit;
+  resize: vertical;
+  min-height: 54px;
+}
+.report-form textarea[aria-invalid="true"] { border-color: #DC2626; }
+
+.report-form-status { margin: 0; font-size: 0.76rem; color: #DC2626; }
+.report-form-status[hidden] { display: none; }
+
+.report-form-actions { display: flex; gap: 6px; }
+
+.btn-primary-sm,
+.btn-ghost-sm {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-primary-sm { background: #3B82F6; border: none; color: #FFFFFF; }
+.btn-primary-sm:hover { background: #2563EB; }
+.btn-primary-sm:disabled { opacity: 0.6; cursor: default; }
+.btn-ghost-sm { background: #FFFFFF; border: 1px solid #CBD5E1; color: #334155; }
+.btn-ghost-sm:hover { background: #F1F5F9; }
+
+/* Ruta */
+.route-block { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid #F1F5F9; }
+.route-actions { display: flex; gap: 6px; }
+.route-actions button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 999px;
+  background: #FFFFFF;
+  font: inherit;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+.route-actions button:hover { background: #F1F5F9; }
+.route-status { margin: 0; font-size: 0.78rem; color: #475569; }
+.route-status:empty { display: none; }
+
+.link-btn {
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+}
+.link-btn:hover { color: #0F172A; text-decoration: underline; }
+.link-btn[hidden] { display: none; }

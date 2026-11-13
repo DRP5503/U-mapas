@@ -9,10 +9,333 @@ const AppState = {
   currentBuilding: null,
   currentFloor: null,
   origenRuta: null,
+  selectedRoomName: null,
+  highlightedReportId: null,
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 let renderToken = 0;
+
+const TODOS_LOS_ESPACIOS = ['sala', 'lab', 'oficina', 'bano', 'escalera', 'otro'];
+
+const CATEGORIAS_REPORTE = [
+  {
+    codigo: 'bano_fuera_servicio',
+    titulo: 'Baño fuera de servicio',
+    corto: 'Clausurado',
+    severidad: 'critica',
+    aplicaEn: ['bano'],
+  },
+  {
+    codigo: 'falta_papel',
+    titulo: 'Falta papel',
+    corto: 'Falta papel',
+    severidad: 'media',
+    aplicaEn: ['bano'],
+  },
+  {
+    codigo: 'falta_jabon',
+    titulo: 'Falta jabón',
+    corto: 'Falta jabón',
+    severidad: 'media',
+    aplicaEn: ['bano'],
+  },
+  {
+    codigo: 'espacio_cerrado',
+    titulo: 'Espacio cerrado',
+    corto: 'Espacio cerrado',
+    severidad: 'critica',
+    aplicaEn: ['sala', 'lab', 'oficina', 'otro'],
+  },
+  {
+    codigo: 'proyector',
+    titulo: 'Falla proyector',
+    corto: 'Proyector',
+    severidad: 'media',
+    aplicaEn: ['sala', 'lab', 'otro'],
+  },
+  {
+    codigo: 'microfono',
+    titulo: 'Falla micrófono',
+    corto: 'Micrófono',
+    severidad: 'media',
+    aplicaEn: ['sala', 'otro'],
+  },
+  {
+    codigo: 'computadores',
+    titulo: 'Falla computador',
+    corto: 'Computador',
+    severidad: 'media',
+    aplicaEn: ['lab', 'sala', 'otro'],
+  },
+  {
+    codigo: 'luz',
+    titulo: 'Sin luz',
+    corto: 'Sin luz',
+    severidad: 'media',
+    aplicaEn: TODOS_LOS_ESPACIOS,
+  },
+  {
+    codigo: 'aire_acondicionado',
+    titulo: 'Falla aire acondicionado',
+    corto: 'Aire acond.',
+    severidad: 'media',
+    aplicaEn: ['sala', 'lab', 'oficina', 'otro'],
+  },
+  {
+    codigo: 'gotera',
+    titulo: 'Goteras',
+    corto: 'Goteras',
+    severidad: 'media',
+    aplicaEn: TODOS_LOS_ESPACIOS,
+  },
+  {
+    codigo: 'aseo',
+    titulo: 'Problema de limpieza',
+    corto: 'Limpieza',
+    severidad: 'media',
+    aplicaEn: TODOS_LOS_ESPACIOS,
+  },
+  {
+    codigo: 'en_mantenimiento',
+    titulo: 'En mantenimiento',
+    corto: 'Mantenimiento',
+    severidad: 'media',
+    aplicaEn: TODOS_LOS_ESPACIOS,
+  },
+  {
+    codigo: 'otro',
+    titulo: 'Otro inconveniente',
+    corto: 'Otro',
+    severidad: 'media',
+    aplicaEn: TODOS_LOS_ESPACIOS,
+  },
+];
+
+const ETIQUETA_TIPO_SALA = {
+  sala: 'Sala de clases',
+  lab: 'Laboratorio',
+  oficina: 'Oficina',
+  bano: 'Baño',
+  escalera: 'Escalera',
+  otro: 'Espacio común',
+};
+
+/* Trazados SVG (viewBox 0 0 24 24) para categorías e íconos de interfaz */
+const ICONOS_SVG = {
+  bano_fuera_servicio: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'circle', cx: '12', cy: '12', r: '9' },
+      { tag: 'line', x1: '5.8', y1: '5.8', x2: '18.2', y2: '18.2' },
+    ],
+  },
+  falta_papel: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'path', d: 'M16 4H8a4 4 0 0 0-4 4v5a4 4 0 0 0 4 4h2' },
+      { tag: 'ellipse', cx: '16', cy: '8.5', rx: '3', ry: '4.5' },
+      { tag: 'path', d: 'M13 13v7l2.5-1.5L18 20l2-1.5V8.5' },
+      { tag: 'circle', cx: '16', cy: '8.5', r: '0.9' },
+    ],
+  },
+  falta_jabon: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'path', d: 'M10 3h5l2 2' },
+      { tag: 'line', x1: '12', y1: '3', x2: '12', y2: '8' },
+      { tag: 'rect', x: '7', y: '8', width: '10', height: '13', rx: '2' },
+    ],
+  },
+  aseo: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'path', d: 'M19 4l-6.5 6.5' },
+      { tag: 'path', d: 'M9 10l5 5-4.5 5.5a2 2 0 0 1-2.8 0L4 17.8a2 2 0 0 1 0-2.8L9 10z' },
+      { tag: 'line', x1: '7', y1: '16', x2: '5', y2: '18' },
+    ],
+  },
+  espacio_cerrado: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'rect', x: '4', y: '11', width: '16', height: '9', rx: '2' },
+      { tag: 'path', d: 'M8 11V7a4 4 0 0 1 8 0v4' },
+    ],
+  },
+  proyector: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'rect', x: '2', y: '8', width: '15', height: '9', rx: '2' },
+      { tag: 'circle', cx: '13', cy: '12.5', r: '2.2' },
+      { tag: 'path', d: 'M17 11l5-2.5v8L17 14' },
+    ],
+  },
+  microfono: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'rect', x: '9', y: '3', width: '6', height: '10', rx: '3' },
+      { tag: 'path', d: 'M5 11a7 7 0 0 0 14 0' },
+      { tag: 'line', x1: '12', y1: '18', x2: '12', y2: '21' },
+      { tag: 'line', x1: '8', y1: '21', x2: '16', y2: '21' },
+    ],
+  },
+  computadores: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'rect', x: '3', y: '4', width: '18', height: '12', rx: '2' },
+      { tag: 'line', x1: '8', y1: '20', x2: '16', y2: '20' },
+      { tag: 'line', x1: '12', y1: '16', x2: '12', y2: '20' },
+    ],
+  },
+  luz: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'path', d: 'M9 18h6' },
+      { tag: 'path', d: 'M10 21h4' },
+      {
+        tag: 'path',
+        d: 'M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14',
+      },
+    ],
+  },
+  aire_acondicionado: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'line', x1: '12', y1: '2', x2: '12', y2: '22' },
+      { tag: 'line', x1: '2', y1: '12', x2: '22', y2: '12' },
+      { tag: 'path', d: 'M19 9l-3 3 3 3' },
+      { tag: 'path', d: 'M5 9l3 3-3 3' },
+      { tag: 'path', d: 'M9 5l3 3 3-3' },
+      { tag: 'path', d: 'M9 19l3-3 3 3' },
+    ],
+  },
+  gotera: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'path', d: 'M12 2.7l5.3 5.7a7.5 7.5 0 1 1-10.6 0z' },
+    ],
+  },
+  en_mantenimiento: {
+    mode: 'stroke',
+    paths: [
+      {
+        tag: 'path',
+        d: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
+      },
+    ],
+  },
+  otro: {
+    mode: 'stroke',
+    paths: [
+      {
+        tag: 'path',
+        d: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+      },
+      { tag: 'line', x1: '12', y1: '9', x2: '12', y2: '13' },
+      { tag: 'line', x1: '12', y1: '17', x2: '12.01', y2: '17' },
+    ],
+  },
+  thumb: {
+    mode: 'fill',
+    paths: [
+      {
+        tag: 'path',
+        d: 'M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3v11zm2-11l3.7-7.4A1.5 1.5 0 0 1 15.5 4.2L14.5 9h5.3a2 2 0 0 1 2 2.3l-1.3 8a2 2 0 0 1-2 1.7H9V11z',
+      },
+    ],
+  },
+  check: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'polyline', points: '20 6 9 17 4 12' },
+    ],
+  },
+  close: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'line', x1: '6', y1: '6', x2: '18', y2: '18' },
+      { tag: 'line', x1: '18', y1: '6', x2: '6', y2: '18' },
+    ],
+  },
+  origin: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'circle', cx: '12', cy: '10', r: '3' },
+      { tag: 'path', d: 'M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z' },
+    ],
+  },
+  navigate: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'polygon', points: '3 11 22 2 13 21 11 13 3 11' },
+    ],
+  },
+};
+
+function crearSvgIcon(clave, size, className = '') {
+  const def = ICONOS_SVG[clave] || ICONOS_SVG.otro;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('aria-hidden', 'true');
+  if (className) svg.setAttribute('class', className);
+
+  if (def.mode === 'fill') {
+    svg.setAttribute('fill', 'currentColor');
+  } else {
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2.2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+  }
+
+  def.paths.forEach(({ tag, ...attrs }) => {
+    const node = document.createElementNS(SVG_NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+    svg.appendChild(node);
+  });
+
+  return svg;
+}
+
+function getCategoria(codigo) {
+  return CATEGORIAS_REPORTE.find((c) => c.codigo === codigo) || CATEGORIAS_REPORTE[CATEGORIAS_REPORTE.length - 1];
+}
+
+function isAuthenticated() {
+  return document.getElementById('vista-piso')?.dataset.authenticated === 'true';
+}
+
+function getLoginUrl() {
+  return document.getElementById('vista-piso')?.dataset.loginUrl || '/login';
+}
+
+function formatearHaceCuanto(minutos) {
+  const m = Number(minutos) || 0;
+  if (m < 1) return 'hace un momento';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.floor(m / 60);
+  return h < 24 ? `hace ${h} h` : `hace ${Math.floor(h / 24)} d`;
+}
+
+function marcarSalaSeleccionada() {
+  document.querySelectorAll('#floorSvg .room').forEach((g) => {
+    g.classList.toggle('room-selected', g.dataset.nombre === AppState.selectedRoomName);
+  });
+}
+
+function cerrarPanelSala() {
+  AppState.selectedRoomName = null;
+  AppState.highlightedReportId = null;
+  document.getElementById('roomPanel')?.replaceChildren();
+  marcarSalaSeleccionada();
+}
+
+function hayRutaActiva() {
+  return Boolean(document.getElementById('floorSvg')?.querySelector('.ruta'));
+}
 
 function showView(name) {
   AppState.currentView = name;
@@ -22,7 +345,72 @@ function showView(name) {
   if (controls) controls.hidden = name !== 'piso';
 }
 
-async function renderFloor(edificio, numero) {
+/** Dibuja el pin circular SVG estilo Waze sobre la esquina de la sala reportada. */
+function crearPinAlerta(sala, reportes) {
+  const pinPrincipal = reportes.find((r) => getCategoria(r.tipo).severidad === 'critica') || reportes[0];
+  const cat = getCategoria(pinPrincipal.tipo);
+
+  const pin = document.createElementNS(SVG_NS, 'g');
+  pin.setAttribute('class', `report-pin sev-${cat.severidad}`);
+  pin.setAttribute('role', 'button');
+  pin.setAttribute('tabindex', '0');
+  pin.setAttribute('aria-label', `${sala.nombre}: ${cat.titulo}`);
+
+  const cx = sala.x + sala.ancho - 6;
+  const cy = sala.y + 6;
+  const radio = 14;
+
+  const circle = document.createElementNS(SVG_NS, 'circle');
+  circle.setAttribute('class', 'pin-bg');
+  circle.setAttribute('cx', cx);
+  circle.setAttribute('cy', cy);
+  circle.setAttribute('r', String(radio));
+
+  const iconSize = 16;
+  const iconSvg = crearSvgIcon(cat.codigo, iconSize, 'pin-icon');
+  iconSvg.setAttribute('x', String(cx - iconSize / 2));
+  iconSvg.setAttribute('y', String(cy - iconSize / 2));
+  iconSvg.style.pointerEvents = 'none';
+
+  pin.append(circle, iconSvg);
+
+  if (reportes.length > 1) {
+    const countCircle = document.createElementNS(SVG_NS, 'circle');
+    countCircle.setAttribute('class', 'pin-count');
+    countCircle.setAttribute('cx', String(cx + 11));
+    countCircle.setAttribute('cy', String(cy + 10));
+    countCircle.setAttribute('r', '7');
+
+    const countText = document.createElementNS(SVG_NS, 'text');
+    countText.setAttribute('class', 'pin-count-text');
+    countText.setAttribute('x', String(cx + 11));
+    countText.setAttribute('y', String(cy + 10));
+    countText.setAttribute('text-anchor', 'middle');
+    countText.setAttribute('dominant-baseline', 'central');
+    countText.setAttribute('font-size', '9');
+    countText.setAttribute('font-weight', '800');
+    countText.textContent = String(reportes.length);
+
+    pin.append(countCircle, countText);
+  }
+
+  const abrirPin = (e) => {
+    e.stopPropagation();
+    showRoom(sala, { highlightReportId: pinPrincipal.id });
+  };
+
+  pin.addEventListener('click', abrirPin);
+  pin.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      abrirPin(e);
+    }
+  });
+
+  return pin;
+}
+
+async function renderFloor(edificio, numero, options = {}) {
   const token = ++renderToken;
   let piso;
   try {
@@ -39,18 +427,28 @@ async function renderFloor(edificio, numero) {
   svg.setAttribute('aria-label', `Plano del edificio ${piso.edificio}, piso ${piso.numero}`);
   document.getElementById('floorTitle').textContent =
     `Edificio ${piso.edificio} · Piso ${piso.numero}`;
-  document.getElementById('roomPanel').replaceChildren();
+
+  if (!options.preservePanel) {
+    cerrarPanelSala();
+  }
 
   const dibujables = piso.salas.filter(
     (s) => s.x !== null && s.y !== null && s.ancho !== null && s.alto !== null
   );
 
+  const pines = [];
   dibujables.forEach((sala) => {
+    const reportes = sala.reportes_activos || [];
+
     const g = document.createElementNS(SVG_NS, 'g');
     g.setAttribute('class', `room room-${sala.tipo}`);
+    g.dataset.nombre = sala.nombre;
     g.setAttribute('role', 'button');
     g.setAttribute('tabindex', '0');
-    g.setAttribute('aria-label', sala.nombre);
+    g.setAttribute(
+      'aria-label',
+      reportes.length ? `${sala.nombre}, ${reportes.length} alerta activa` : sala.nombre
+    );
 
     const rect = document.createElementNS(SVG_NS, 'rect');
     rect.setAttribute('x', sala.x);
@@ -67,7 +465,10 @@ async function renderFloor(edificio, numero) {
     label.textContent = sala.nombre;
 
     g.append(rect, label);
-    g.addEventListener('click', () => showRoom(sala));
+    g.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showRoom(sala);
+    });
     g.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -75,12 +476,25 @@ async function renderFloor(edificio, numero) {
       }
     });
     svg.appendChild(g);
+
+    if (reportes.length) pines.push(crearPinAlerta(sala, reportes));
   });
+
+  // Los pines se agregan al final para quedar por encima de las salas vecinas
+  pines.forEach((pin) => svg.appendChild(pin));
 
   if (dibujables.length === 0) {
     const msg = document.createElement('p');
     msg.textContent = 'Este piso aún no tiene plano dibujado.';
     document.getElementById('roomPanel').appendChild(msg);
+    return;
+  }
+
+  if (options.preservePanel && AppState.selectedRoomName) {
+    const salaActualizada = piso.salas.find((s) => s.nombre === AppState.selectedRoomName);
+    if (salaActualizada) {
+      showRoom(salaActualizada, { highlightReportId: options.highlightReportId });
+    }
   }
 }
 
@@ -108,9 +522,9 @@ function borrarRuta() {
   document.getElementById('floorSvg').querySelector('.ruta')?.remove();
 }
 
-async function pedirRuta(hasta, estado) {
+async function pedirRuta(hasta, estado, btnBorrar) {
   if (!AppState.origenRuta) {
-    estado.textContent = 'Primero elige un origen con "Partir desde aquí".';
+    estado.textContent = 'Elige primero un origen con "Desde aquí".';
     return;
   }
   try {
@@ -125,63 +539,401 @@ async function pedirRuta(hasta, estado) {
       return;
     }
     dibujarRuta(data.puntos);
-    estado.textContent = `Ruta de ${data.desde} a ${data.hasta} (${data.distancia} unidades).`;
+    btnBorrar.hidden = false;
+    estado.textContent = `Ruta de ${data.desde} a ${data.hasta} (${data.distancia} u).`;
   } catch (err) {
     console.error('No se pudo pedir la ruta:', err);
     estado.textContent = 'Error al pedir la ruta.';
   }
 }
 
-function agregarControlesRuta(sala, panel) {
-  const estado = document.createElement('p');
-  estado.className = 'route-status';
-  if (AppState.origenRuta) estado.textContent = `Origen elegido: ${AppState.origenRuta}`;
+function agregarSeccionRuta(sala, panel) {
+  const block = document.createElement('div');
+  block.className = 'route-block';
+
   const acciones = document.createElement('div');
   acciones.className = 'route-actions';
-  const boton = (texto, onClick) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = texto;
-    b.addEventListener('click', onClick);
-    return b;
-  };
-  acciones.append(
-    boton('Partir desde aquí', () => {
-      AppState.origenRuta = sala.nombre;
-      estado.textContent = `Origen elegido: ${sala.nombre}`;
-    }),
-    boton('Ir hasta aquí', () => pedirRuta(sala.nombre, estado)),
-    boton('Borrar ruta', () => {
-      borrarRuta();
-      estado.textContent = '';
-    })
-  );
-  panel.append(acciones, estado);
+
+  const estado = document.createElement('p');
+  estado.className = 'route-status';
+  estado.setAttribute('role', 'status');
+  if (AppState.origenRuta) estado.textContent = `Origen: ${AppState.origenRuta}`;
+
+  const btnBorrar = document.createElement('button');
+  btnBorrar.type = 'button';
+  btnBorrar.className = 'link-btn';
+  btnBorrar.textContent = 'Borrar ruta';
+  btnBorrar.hidden = !hayRutaActiva();
+  btnBorrar.addEventListener('click', () => {
+    borrarRuta();
+    estado.textContent = '';
+    btnBorrar.hidden = true;
+  });
+
+  const btnDesde = document.createElement('button');
+  btnDesde.type = 'button';
+  const lblDesde = document.createElement('span');
+  lblDesde.textContent = 'Desde aquí';
+  btnDesde.append(crearSvgIcon('origin', 14), lblDesde);
+  btnDesde.addEventListener('click', () => {
+    AppState.origenRuta = sala.nombre;
+    estado.textContent = `Origen: ${sala.nombre}`;
+  });
+
+  const btnHasta = document.createElement('button');
+  btnHasta.type = 'button';
+  const lblHasta = document.createElement('span');
+  lblHasta.textContent = 'Hasta aquí';
+  btnHasta.append(crearSvgIcon('navigate', 14), lblHasta);
+  btnHasta.addEventListener('click', () => pedirRuta(sala.nombre, estado, btnBorrar));
+
+  acciones.append(btnDesde, btnHasta);
+  block.append(acciones, estado, btnBorrar);
+  panel.appendChild(block);
 }
 
-function showRoom(sala) {
+/**
+ * Crea una tarjeta oscura autoexplicativa estilo Waze con el ícono SVG circular
+ * y el botón pill azul de confirmación [👍 N].
+ */
+function crearTarjetaReporte(reporte, highlighted) {
+  const cat = getCategoria(reporte.tipo);
+
+  const li = document.createElement('li');
+  li.className = 'report-card';
+  if (highlighted) li.classList.add('is-highlighted');
+
+  const titulo = document.createElement('p');
+  titulo.className = 'report-card-title';
+  titulo.textContent = cat.titulo;
+
+  const meta = document.createElement('span');
+  meta.className = 'report-card-meta';
+  meta.textContent = formatearHaceCuanto(reporte.hace_min);
+
+  const iconWrap = document.createElement('div');
+  iconWrap.className = `report-card-icon sev-${cat.severidad}`;
+  iconWrap.appendChild(crearSvgIcon(cat.codigo, 22));
+
+  li.append(titulo, meta, iconWrap);
+
+  if (reporte.descripcion && reporte.descripcion.trim()) {
+    const desc = document.createElement('p');
+    desc.className = 'report-card-desc';
+    desc.textContent = reporte.descripcion;
+    li.appendChild(desc);
+  }
+
+  const footer = document.createElement('div');
+  footer.className = 'report-card-footer';
+
+  const countSpan = document.createElement('span');
+  countSpan.textContent = String(reporte.confirmaciones);
+
+  if (isAuthenticated()) {
+    if (reporte.es_autor) {
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'close-report-pill';
+      closeBtn.setAttribute('aria-label', 'Cerrar este reporte');
+      const closeText = document.createElement('span');
+      closeText.textContent = 'Cerrar';
+      closeBtn.append(crearSvgIcon('check', 15), closeText);
+
+      closeBtn.addEventListener('click', async () => {
+        closeBtn.disabled = true;
+        const { ok, data } = await MapAPI.cerrarReporte(reporte.id);
+        if (!ok) {
+          closeBtn.disabled = false;
+          if (data?.error) meta.textContent = data.error;
+          return;
+        }
+        await renderFloor(AppState.currentBuilding, AppState.currentFloor, {
+          preservePanel: true,
+        });
+      });
+
+      const badge = document.createElement('span');
+      badge.className = 'thumb-pill';
+      badge.setAttribute('aria-pressed', 'true');
+      badge.setAttribute('aria-label', `Confirmaciones: ${reporte.confirmaciones}`);
+      badge.append(crearSvgIcon('thumb', 15), countSpan);
+
+      footer.append(closeBtn, badge);
+    } else {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'thumb-pill';
+      pill.setAttribute('aria-pressed', reporte.ya_confirmado ? 'true' : 'false');
+      pill.setAttribute(
+        'aria-label',
+        reporte.ya_confirmado
+          ? `Confirmado (${reporte.confirmaciones})`
+          : `Confirmar que sigue ocurriendo (${reporte.confirmaciones})`
+      );
+      pill.append(crearSvgIcon('thumb', 15), countSpan);
+
+      pill.addEventListener('click', async () => {
+        if (reporte.ya_confirmado) return;
+        pill.setAttribute('aria-pressed', 'true');
+        const { ok, data } = await MapAPI.confirmarReporte(reporte.id);
+        if (!ok) {
+          pill.setAttribute('aria-pressed', 'false');
+          if (data?.error) meta.textContent = data.error;
+          return;
+        }
+        await renderFloor(AppState.currentBuilding, AppState.currentFloor, {
+          preservePanel: true,
+          highlightReportId: reporte.id,
+        });
+      });
+
+      footer.appendChild(pill);
+    }
+  } else {
+    const linkPill = document.createElement('a');
+    linkPill.href = getLoginUrl();
+    linkPill.className = 'thumb-pill';
+    linkPill.setAttribute('aria-label', `Inicia sesión para confirmar (${reporte.confirmaciones})`);
+    linkPill.append(crearSvgIcon('thumb', 15), countSpan);
+    footer.appendChild(linkPill);
+  }
+
+  li.appendChild(footer);
+  return li;
+}
+
+function crearFormularioReporte(sala) {
+  const form = document.createElement('form');
+  form.className = 'report-form';
+  form.hidden = true;
+  form.noValidate = true;
+
+  const fieldset = document.createElement('fieldset');
+  fieldset.className = 'category-grid';
+
+  const legend = document.createElement('legend');
+  legend.className = 'visually-hidden';
+  legend.textContent = 'Tipo de problema';
+  fieldset.appendChild(legend);
+
+  const categorias = CATEGORIAS_REPORTE.filter((c) => c.aplicaEn.includes(sala.tipo));
+  const listaCats = categorias.length ? categorias : CATEGORIAS_REPORTE;
+
+  listaCats.forEach((cat, idx) => {
+    const tile = document.createElement('label');
+    tile.className = 'category-tile';
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'tipo';
+    radio.value = cat.codigo;
+    radio.className = 'visually-hidden';
+    if (idx === 0) radio.checked = true;
+
+    const iconCircle = document.createElement('span');
+    iconCircle.className = `category-tile-icon sev-${cat.severidad}`;
+    iconCircle.appendChild(crearSvgIcon(cat.codigo, 18));
+
+    const labelText = document.createElement('span');
+    labelText.textContent = cat.corto;
+
+    tile.append(radio, iconCircle, labelText);
+    fieldset.appendChild(tile);
+  });
+
+  const idDesc = `reporte-desc-${sala.id}`;
+  const labelDesc = document.createElement('label');
+  labelDesc.className = 'report-form-label';
+  labelDesc.htmlFor = idDesc;
+
+  const textarea = document.createElement('textarea');
+  textarea.id = idDesc;
+  textarea.name = 'descripcion';
+  textarea.rows = 2;
+  textarea.maxLength = 500;
+
+  const estado = document.createElement('p');
+  estado.className = 'report-form-status';
+  estado.setAttribute('role', 'alert');
+  estado.hidden = true;
+
+  const getSelectedTipo = () =>
+    form.querySelector('input[name="tipo"]:checked')?.value || listaCats[0].codigo;
+
+  const actualizarObligatoriedad = () => {
+    const esOtro = getSelectedTipo() === 'otro';
+    textarea.required = esOtro;
+    labelDesc.textContent = esOtro ? 'Detalle (obligatorio)' : 'Detalle (opcional)';
+    textarea.placeholder = esOtro ? 'Describe el problema...' : 'Agregar nota...';
+    if (!esOtro) textarea.removeAttribute('aria-invalid');
+  };
+
+  fieldset.addEventListener('change', () => {
+    actualizarObligatoriedad();
+    estado.hidden = true;
+  });
+  textarea.addEventListener('input', () => {
+    textarea.removeAttribute('aria-invalid');
+    if (!textarea.required || textarea.value.trim()) {
+      estado.hidden = true;
+    }
+  });
+  actualizarObligatoriedad();
+
+  const acciones = document.createElement('div');
+  acciones.className = 'report-form-actions';
+
+  const btnCancelar = document.createElement('button');
+  btnCancelar.type = 'button';
+  btnCancelar.className = 'btn-ghost-sm';
+  btnCancelar.textContent = 'Cancelar';
+
+  const btnEnviar = document.createElement('button');
+  btnEnviar.type = 'submit';
+  btnEnviar.className = 'btn-primary-sm';
+  btnEnviar.textContent = 'Reportar';
+
+  acciones.append(btnCancelar, btnEnviar);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    estado.hidden = true;
+
+    const tipoSeleccionado = getSelectedTipo();
+    if (tipoSeleccionado === 'otro' && !textarea.value.trim()) {
+      estado.hidden = false;
+      estado.textContent = 'Describe el problema al elegir «Otro».';
+      textarea.setAttribute('aria-invalid', 'true');
+      textarea.focus();
+      return;
+    }
+
+    btnEnviar.disabled = true;
+    const { ok, status, data } = await MapAPI.crearReporte({
+      sala_id: sala.id,
+      tipo: tipoSeleccionado,
+      descripcion: textarea.value.trim(),
+    });
+    btnEnviar.disabled = false;
+
+    if (!ok) {
+      estado.hidden = false;
+      estado.textContent = data.error || 'No se pudo enviar el reporte.';
+      if (status === 409 && data.reporte_existente) {
+        const card = document.querySelector(`.report-card`);
+        card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      return;
+    }
+
+    await renderFloor(AppState.currentBuilding, AppState.currentFloor, {
+      preservePanel: true,
+      highlightReportId: data.reporte?.id,
+    });
+  });
+
+  form.append(fieldset, labelDesc, textarea, estado, acciones);
+  return { form, btnCancelar, firstRadio: fieldset.querySelector('input[type="radio"]') };
+}
+
+function agregarSeccionReportes(sala, panel, options = {}) {
+  const reportes = sala.reportes_activos || [];
+
+  // Sin reportes activos no se muestra texto de relleno; solo se renderizan las tarjetas si existen
+  if (reportes.length > 0) {
+    const lista = document.createElement('ul');
+    lista.className = 'report-cards';
+    lista.setAttribute('role', 'list');
+    reportes.forEach((rep) => {
+      lista.appendChild(crearTarjetaReporte(rep, rep.id === options.highlightReportId));
+    });
+    panel.appendChild(lista);
+  }
+
+  if (isAuthenticated()) {
+    const { form, btnCancelar, firstRadio } = crearFormularioReporte(sala);
+
+    const btnAbrir = document.createElement('button');
+    btnAbrir.type = 'button';
+    btnAbrir.className = 'report-btn';
+    btnAbrir.setAttribute('aria-expanded', 'false');
+    const lbl = document.createElement('span');
+    lbl.textContent = 'Reportar';
+    btnAbrir.append(crearSvgIcon('otro', 16), lbl);
+
+    btnAbrir.addEventListener('click', () => {
+      form.hidden = false;
+      btnAbrir.hidden = true;
+      btnAbrir.setAttribute('aria-expanded', 'true');
+      firstRadio?.focus();
+    });
+
+    btnCancelar.addEventListener('click', () => {
+      form.hidden = true;
+      btnAbrir.hidden = false;
+      btnAbrir.setAttribute('aria-expanded', 'false');
+      btnAbrir.focus();
+    });
+
+    panel.append(btnAbrir, form);
+  } else {
+    const link = document.createElement('a');
+    link.href = getLoginUrl();
+    link.className = 'report-btn';
+    const lbl = document.createElement('span');
+    lbl.textContent = 'Inicia sesión para reportar';
+    link.append(crearSvgIcon('otro', 16), lbl);
+    panel.appendChild(link);
+  }
+}
+
+function showRoom(sala, options = {}) {
+  AppState.selectedRoomName = sala.nombre;
+  AppState.highlightedReportId = options.highlightReportId || null;
+  marcarSalaSeleccionada();
+
   const panel = document.getElementById('roomPanel');
   panel.replaceChildren();
 
+  // 1. Encabezado: nombre y tipo de espacio
+  const header = document.createElement('div');
+  header.className = 'room-panel-header';
+
+  const tituloWrap = document.createElement('div');
   const titulo = document.createElement('h3');
   titulo.textContent = sala.nombre;
-  panel.appendChild(titulo);
+  const tipo = document.createElement('span');
+  tipo.className = 'room-type';
+  tipo.textContent = ETIQUETA_TIPO_SALA[sala.tipo] || 'Espacio';
+  tituloWrap.append(titulo, tipo);
+
+  const btnCerrar = document.createElement('button');
+  btnCerrar.type = 'button';
+  btnCerrar.className = 'icon-btn';
+  btnCerrar.setAttribute('aria-label', 'Cerrar panel');
+  btnCerrar.appendChild(crearSvgIcon('close', 16));
+  btnCerrar.addEventListener('click', () => cerrarPanelSala());
+
+  header.append(tituloWrap, btnCerrar);
+  panel.appendChild(header);
 
   if (sala.profesores.length) {
     const lista = document.createElement('ul');
+    lista.className = 'room-prof-list';
     sala.profesores.forEach((nombre) => {
       const li = document.createElement('li');
       li.textContent = nombre;
       lista.appendChild(li);
     });
     panel.appendChild(lista);
-  } else {
-    const vacio = document.createElement('p');
-    vacio.textContent = 'Sin profesores asignados.';
-    panel.appendChild(vacio);
   }
 
-  agregarControlesRuta(sala, panel);
+  // 2. Tarjetas estilo Waze (si hay alertas) + botón de reportar
+  agregarSeccionReportes(sala, panel, options);
+
+  // 3. Navegación al final
+  agregarSeccionRuta(sala, panel);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -189,6 +941,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const floorBtn = document.getElementById('floorSelectorBtn');
   const floorMenu = document.getElementById('floorDropdownMenu');
   const floorLabel = document.getElementById('currentFloorLabel');
+  const vistaPiso = document.getElementById('vista-piso');
+  const roomPanel = document.getElementById('roomPanel');
+
+  // Evita que un click dentro del panel de sala lo cierre
+  roomPanel?.addEventListener('click', (e) => e.stopPropagation());
+
+  // Cierra el panel de sala al hacer click en cualquier zona vacía del piso (pasillos, fondo, etc.)
+  vistaPiso?.addEventListener('click', (e) => {
+    if (
+      AppState.selectedRoomName &&
+      !e.target.closest('.room') &&
+      !e.target.closest('.report-pin') &&
+      !e.target.closest('#roomPanel') &&
+      !e.target.closest('.map-floating-controls') &&
+      !e.target.closest('#backToGeneral')
+    ) {
+      cerrarPanelSala();
+    }
+  });
 
   if (floorBtn && floorMenu) {
     const toggleFloorMenu = (open) => {
@@ -323,8 +1094,8 @@ document.addEventListener('DOMContentLoaded', () => {
       renderToken++;
       AppState.currentBuilding = null;
       AppState.currentFloor = null;
+      cerrarPanelSala();
       document.getElementById('floorSvg').replaceChildren();
-      document.getElementById('roomPanel').replaceChildren();
       showView('general');
       document.getElementById('vista-general').focus();
     });
