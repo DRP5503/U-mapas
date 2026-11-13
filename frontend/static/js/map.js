@@ -11,10 +11,14 @@ const AppState = {
   origenRuta: null,
   selectedRoomName: null,
   highlightedReportId: null,
+  reportPanelView: 'closed', // 'closed' | 'list' | 'form'
+  reportsExpanded: false,
   salaObjetivo: null,
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const MAX_REPORTES_VISIBLES = 2;
+const MAX_SLOTS_ICONOS = 4;
 let renderToken = 0;
 
 const TODOS_LOS_ESPACIOS = ['sala', 'lab', 'oficina', 'bano', 'escalera', 'otro'];
@@ -258,6 +262,19 @@ const ICONOS_SVG = {
       { tag: 'line', x1: '18', y1: '6', x2: '6', y2: '18' },
     ],
   },
+  plus: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'line', x1: '12', y1: '5', x2: '12', y2: '19' },
+      { tag: 'line', x1: '5', y1: '12', x2: '19', y2: '12' },
+    ],
+  },
+  chevronDown: {
+    mode: 'stroke',
+    paths: [
+      { tag: 'polyline', points: '6 9 12 15 18 9' },
+    ],
+  },
   origin: {
     mode: 'stroke',
     paths: [
@@ -330,6 +347,8 @@ function marcarSalaSeleccionada() {
 function cerrarPanelSala() {
   AppState.selectedRoomName = null;
   AppState.highlightedReportId = null;
+  AppState.reportPanelView = 'closed';
+  AppState.reportsExpanded = false;
   document.getElementById('roomPanel')?.replaceChildren();
   marcarSalaSeleccionada();
 }
@@ -346,9 +365,33 @@ function showView(name) {
   if (controls) controls.hidden = name !== 'piso';
 }
 
+/**
+ * Ordena los reportes por prioridad de visualización: resaltado activo,
+ * severidad crítica, más confirmaciones y más reciente.
+ */
+function ordenarReportesPorPrioridad(reportes, highlightReportId = null) {
+  return [...reportes].sort((a, b) => {
+    if (highlightReportId) {
+      if (a.id === highlightReportId) return -1;
+      if (b.id === highlightReportId) return 1;
+    }
+    const sevA = getCategoria(a.tipo).severidad === 'critica' ? 0 : 1;
+    const sevB = getCategoria(b.tipo).severidad === 'critica' ? 0 : 1;
+    if (sevA !== sevB) return sevA - sevB;
+
+    const confDiff = (b.confirmaciones || 0) - (a.confirmaciones || 0);
+    if (confDiff !== 0) return confDiff;
+
+    const fechaDiff = (Date.parse(b.fecha) || 0) - (Date.parse(a.fecha) || 0);
+    if (fechaDiff !== 0) return fechaDiff;
+
+    return (b.id || 0) - (a.id || 0);
+  });
+}
+
 /** Dibuja el pin circular SVG estilo Waze sobre la esquina de la sala reportada. */
 function crearPinAlerta(sala, reportes) {
-  const pinPrincipal = reportes.find((r) => getCategoria(r.tipo).severidad === 'critica') || reportes[0];
+  const pinPrincipal = ordenarReportesPorPrioridad(reportes)[0];
   const cat = getCategoria(pinPrincipal.tipo);
 
   const pin = document.createElementNS(SVG_NS, 'g');
@@ -494,7 +537,10 @@ async function renderFloor(edificio, numero, options = {}) {
   if (options.preservePanel && AppState.selectedRoomName) {
     const salaActualizada = piso.salas.find((s) => s.nombre === AppState.selectedRoomName);
     if (salaActualizada) {
-      showRoom(salaActualizada, { highlightReportId: options.highlightReportId });
+      showRoom(salaActualizada, {
+        highlightReportId: options.highlightReportId,
+        openReportsView: options.openReportsView,
+      });
     }
   }
 
@@ -619,6 +665,7 @@ function crearTarjetaReporte(reporte, highlighted) {
 
   const li = document.createElement('li');
   li.className = 'report-card';
+  li.dataset.reportId = String(reporte.id);
   if (highlighted) li.classList.add('is-highlighted');
 
   const titulo = document.createElement('p');
@@ -719,7 +766,7 @@ function crearTarjetaReporte(reporte, highlighted) {
   return li;
 }
 
-function crearFormularioReporte(sala) {
+function crearFormularioReporte(sala, onDuplicateReport = null) {
   const form = document.createElement('form');
   form.className = 'report-form';
   form.hidden = true;
@@ -769,10 +816,31 @@ function crearFormularioReporte(sala) {
   textarea.rows = 2;
   textarea.maxLength = 500;
 
-  const estado = document.createElement('p');
+  const estado = document.createElement('div');
   estado.className = 'report-form-status';
   estado.setAttribute('role', 'alert');
   estado.hidden = true;
+
+  const estadoTexto = document.createElement('span');
+  const btnVerDuplicado = document.createElement('button');
+  btnVerDuplicado.type = 'button';
+  btnVerDuplicado.className = 'report-status-link';
+  btnVerDuplicado.textContent = 'Ver reporte';
+  btnVerDuplicado.hidden = true;
+  let duplicateTargetId = null;
+
+  btnVerDuplicado.addEventListener('click', () => {
+    if (duplicateTargetId) onDuplicateReport?.(duplicateTargetId);
+  });
+
+  estado.append(estadoTexto, btnVerDuplicado);
+
+  const limpiarEstado = () => {
+    estado.hidden = true;
+    estadoTexto.textContent = '';
+    btnVerDuplicado.hidden = true;
+    duplicateTargetId = null;
+  };
 
   const getSelectedTipo = () =>
     form.querySelector('input[name="tipo"]:checked')?.value || listaCats[0].codigo;
@@ -787,12 +855,12 @@ function crearFormularioReporte(sala) {
 
   fieldset.addEventListener('change', () => {
     actualizarObligatoriedad();
-    estado.hidden = true;
+    limpiarEstado();
   });
   textarea.addEventListener('input', () => {
     textarea.removeAttribute('aria-invalid');
     if (!textarea.required || textarea.value.trim()) {
-      estado.hidden = true;
+      limpiarEstado();
     }
   });
   actualizarObligatoriedad();
@@ -814,12 +882,12 @@ function crearFormularioReporte(sala) {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    estado.hidden = true;
+    limpiarEstado();
 
     const tipoSeleccionado = getSelectedTipo();
     if (tipoSeleccionado === 'otro' && !textarea.value.trim()) {
       estado.hidden = false;
-      estado.textContent = 'Describe el problema al elegir «Otro».';
+      estadoTexto.textContent = 'Describe el problema al elegir «Otro».';
       textarea.setAttribute('aria-invalid', 'true');
       textarea.focus();
       return;
@@ -835,10 +903,10 @@ function crearFormularioReporte(sala) {
 
     if (!ok) {
       estado.hidden = false;
-      estado.textContent = data.error || 'No se pudo enviar el reporte.';
-      if (status === 409 && data.reporte_existente) {
-        const card = document.querySelector(`.report-card`);
-        card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      estadoTexto.textContent = data.error || 'No se pudo enviar el reporte.';
+      if (status === 409 && data.reporte_existente && onDuplicateReport) {
+        duplicateTargetId = data.reporte_existente.id;
+        btnVerDuplicado.hidden = false;
       }
       return;
     }
@@ -846,6 +914,7 @@ function crearFormularioReporte(sala) {
     await renderFloor(AppState.currentBuilding, AppState.currentFloor, {
       preservePanel: true,
       highlightReportId: data.reporte?.id,
+      openReportsView: 'list',
     });
   });
 
@@ -853,55 +922,210 @@ function crearFormularioReporte(sala) {
   return { form, btnCancelar, firstRadio: fieldset.querySelector('input[type="radio"]') };
 }
 
-function agregarSeccionReportes(sala, panel, options = {}) {
-  const reportes = sala.reportes_activos || [];
+/**
+ * Construye la fila compacta de íconos de reportes activos con un tope visible
+ * y badge de excedente ("+2", "+3", ...) cuando corresponde.
+ */
+function crearBarraIconosReportes(ordenados) {
+  const iconsWrap = document.createElement('span');
+  iconsWrap.className = 'report-summary-icons';
+  iconsWrap.setAttribute('aria-hidden', 'true');
 
-  // Sin reportes activos no se muestra texto de relleno; solo se renderizan las tarjetas si existen
-  if (reportes.length > 0) {
-    const lista = document.createElement('ul');
-    lista.className = 'report-cards';
-    lista.setAttribute('role', 'list');
-    reportes.forEach((rep) => {
-      lista.appendChild(crearTarjetaReporte(rep, rep.id === options.highlightReportId));
+  const visibles =
+    ordenados.length > MAX_SLOTS_ICONOS
+      ? ordenados.slice(0, MAX_SLOTS_ICONOS - 1)
+      : ordenados;
+  const ocultos = ordenados.length - visibles.length;
+
+  visibles.forEach((rep) => {
+    const cat = getCategoria(rep.tipo);
+    const mini = document.createElement('span');
+    mini.className = `report-mini-icon sev-${cat.severidad}`;
+    mini.appendChild(crearSvgIcon(cat.codigo, 11));
+    iconsWrap.appendChild(mini);
+  });
+
+  if (ocultos > 0) {
+    const extra = document.createElement('span');
+    extra.className = 'report-mini-overflow';
+    extra.textContent = `+${ocultos}`;
+    iconsWrap.appendChild(extra);
+  }
+
+  return iconsWrap;
+}
+
+function crearBotonResumenReportes(ordenados, slotId) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'report-summary-btn';
+
+  const label = document.createElement('span');
+  label.className = 'report-summary-label';
+  label.textContent = 'Reportes';
+  btn.appendChild(label);
+
+  if (ordenados.length > 0) {
+    btn.setAttribute('aria-controls', slotId);
+    btn.setAttribute(
+      'aria-label',
+      `Reportes: ${ordenados.length} ${ordenados.length === 1 ? 'alerta activa' : 'alertas activas'}`
+    );
+    btn.append(
+      crearBarraIconosReportes(ordenados),
+      crearSvgIcon('chevronDown', 14, 'report-summary-chevron')
+    );
+  } else {
+    btn.disabled = true;
+    btn.setAttribute('aria-label', 'Reportes: sin alertas activas');
+    const emptyTag = document.createElement('span');
+    emptyTag.className = 'report-summary-empty';
+    emptyTag.textContent = 'Sin alertas';
+    btn.appendChild(emptyTag);
+  }
+
+  return btn;
+}
+
+function crearControlListaReportes(ordenados, highlightReportId, onShowReportList) {
+  const excedente = ordenados.length - MAX_REPORTES_VISIBLES;
+  const wrap = document.createElement('div');
+  wrap.className = 'report-list-wrap';
+  wrap.hidden = true;
+
+  const lista = document.createElement('ul');
+  lista.id = 'roomReportCards';
+  lista.className = 'report-cards';
+  lista.setAttribute('role', 'list');
+
+  let btnToggle = null;
+  if (excedente > 0) {
+    btnToggle = document.createElement('button');
+    btnToggle.type = 'button';
+    btnToggle.className = 'report-more-btn';
+    btnToggle.setAttribute('aria-controls', lista.id);
+  }
+
+  const sincronizarLista = (activeHighlightId = highlightReportId) => {
+    const expandir = excedente > 0 && AppState.reportsExpanded;
+    const visibles = expandir ? ordenados : ordenados.slice(0, MAX_REPORTES_VISIBLES);
+
+    lista.classList.toggle('is-expanded', expandir);
+    lista.replaceChildren(
+      ...visibles.map((rep) => crearTarjetaReporte(rep, rep.id === activeHighlightId))
+    );
+
+    if (btnToggle) {
+      btnToggle.setAttribute('aria-expanded', expandir ? 'true' : 'false');
+      btnToggle.textContent = expandir
+        ? 'Mostrar menos'
+        : `Ver ${excedente} ${excedente === 1 ? 'reporte más' : 'reportes más'}`;
+    }
+  };
+
+  if (btnToggle) {
+    btnToggle.addEventListener('click', () => {
+      AppState.reportsExpanded = !AppState.reportsExpanded;
+      sincronizarLista();
     });
-    panel.appendChild(lista);
+  }
+
+  const enfocarReporte = (reporteId) => {
+    onShowReportList();
+    let card = lista.querySelector(`.report-card[data-report-id="${reporteId}"]`);
+    if (!card && excedente > 0 && !AppState.reportsExpanded) {
+      AppState.reportsExpanded = true;
+      sincronizarLista(reporteId);
+      card = lista.querySelector(`.report-card[data-report-id="${reporteId}"]`);
+    } else if (card) {
+      card.classList.remove('is-highlighted');
+      requestAnimationFrame(() => card.classList.add('is-highlighted'));
+    }
+    card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  sincronizarLista();
+  wrap.appendChild(lista);
+  if (btnToggle) wrap.appendChild(btnToggle);
+  return { wrap, enfocarReporte };
+}
+
+function agregarSeccionReportes(sala, panel, options = {}) {
+  const ordenados = ordenarReportesPorPrioridad(
+    sala.reportes_activos || [],
+    options.highlightReportId
+  );
+
+  const bar = document.createElement('div');
+  bar.className = 'report-bar';
+
+  const slot = document.createElement('div');
+  slot.id = 'roomReportSlot';
+  slot.className = 'report-slot';
+
+  const btnResumen = crearBotonResumenReportes(ordenados, slot.id);
+  let listCtrl = null;
+  let form = null;
+  let btnAgregar = null;
+
+  const sincronizarSeccion = () => {
+    if (AppState.reportPanelView === 'list' && !listCtrl) AppState.reportPanelView = 'closed';
+    if (AppState.reportPanelView === 'form' && !form) AppState.reportPanelView = 'closed';
+
+    const vista = AppState.reportPanelView;
+    slot.hidden = vista === 'closed';
+    if (listCtrl) listCtrl.wrap.hidden = vista !== 'list';
+    if (form) form.hidden = vista !== 'form';
+    if (ordenados.length > 0) btnResumen.setAttribute('aria-expanded', vista === 'list' ? 'true' : 'false');
+    if (btnAgregar?.tagName === 'BUTTON') {
+      btnAgregar.setAttribute('aria-expanded', vista === 'form' ? 'true' : 'false');
+    }
+  };
+
+  if (ordenados.length > 0) {
+    listCtrl = crearControlListaReportes(ordenados, options.highlightReportId, () => {
+      AppState.reportPanelView = 'list';
+      sincronizarSeccion();
+    });
+    slot.appendChild(listCtrl.wrap);
+    btnResumen.addEventListener('click', () => {
+      AppState.reportPanelView = AppState.reportPanelView === 'list' ? 'closed' : 'list';
+      sincronizarSeccion();
+    });
   }
 
   if (isAuthenticated()) {
-    const { form, btnCancelar, firstRadio } = crearFormularioReporte(sala);
+    const formCtrl = crearFormularioReporte(sala, listCtrl?.enfocarReporte || null);
+    form = formCtrl.form;
+    slot.appendChild(form);
 
-    const btnAbrir = document.createElement('button');
-    btnAbrir.type = 'button';
-    btnAbrir.className = 'report-btn';
-    btnAbrir.setAttribute('aria-expanded', 'false');
-    const lbl = document.createElement('span');
-    lbl.textContent = 'Reportar';
-    btnAbrir.append(crearSvgIcon('otro', 16), lbl);
-
-    btnAbrir.addEventListener('click', () => {
-      form.hidden = false;
-      btnAbrir.hidden = true;
-      btnAbrir.setAttribute('aria-expanded', 'true');
-      firstRadio?.focus();
+    btnAgregar = document.createElement('button');
+    btnAgregar.type = 'button';
+    btnAgregar.className = 'report-add-btn';
+    btnAgregar.setAttribute('aria-controls', slot.id);
+    btnAgregar.addEventListener('click', () => {
+      AppState.reportPanelView = AppState.reportPanelView === 'form' ? 'closed' : 'form';
+      sincronizarSeccion();
+      if (AppState.reportPanelView === 'form') formCtrl.firstRadio?.focus();
     });
-
-    btnCancelar.addEventListener('click', () => {
-      form.hidden = true;
-      btnAbrir.hidden = false;
-      btnAbrir.setAttribute('aria-expanded', 'false');
-      btnAbrir.focus();
+    formCtrl.btnCancelar.addEventListener('click', () => {
+      AppState.reportPanelView = 'closed';
+      sincronizarSeccion();
+      btnAgregar.focus();
     });
-
-    panel.append(btnAbrir, form);
   } else {
-    const link = document.createElement('a');
-    link.href = getLoginUrl();
-    link.className = 'report-btn';
-    const lbl = document.createElement('span');
-    lbl.textContent = 'Reportar';
-    link.append(crearSvgIcon('otro', 16), lbl);
-    panel.appendChild(link);
+    btnAgregar = document.createElement('a');
+    btnAgregar.href = getLoginUrl();
+    btnAgregar.className = 'report-add-btn';
   }
+
+  btnAgregar.setAttribute('aria-label', 'Nuevo reporte');
+  btnAgregar.setAttribute('title', 'Nuevo reporte');
+  btnAgregar.appendChild(crearSvgIcon('plus', 17));
+
+  sincronizarSeccion();
+  bar.append(btnResumen, btnAgregar);
+  panel.append(bar, slot);
 }
 
 function agregarBotonFavorito(sala, panel) {
@@ -951,8 +1175,23 @@ function agregarBotonFavorito(sala, panel) {
 }
 
 function showRoom(sala, options = {}) {
+  const mismaSala = AppState.selectedRoomName === sala.nombre;
+  const reportes = sala.reportes_activos || [];
   AppState.selectedRoomName = sala.nombre;
   AppState.highlightedReportId = options.highlightReportId || null;
+  if (!mismaSala) {
+    AppState.reportPanelView = options.openReportsView || 'closed';
+    AppState.reportsExpanded = false;
+  } else {
+    if (options.openReportsView) {
+      AppState.reportPanelView = options.openReportsView;
+    } else if (reportes.length === 0 && AppState.reportPanelView === 'list') {
+      AppState.reportPanelView = 'closed';
+    }
+    if (reportes.length <= MAX_REPORTES_VISIBLES) {
+      AppState.reportsExpanded = false;
+    }
+  }
   marcarSalaSeleccionada();
 
   const panel = document.getElementById('roomPanel');
