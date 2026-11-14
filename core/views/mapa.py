@@ -137,4 +137,26 @@ def buscar(request):
                 'piso': sala.piso.numero,
             })
     resultados.sort(key=lambda r: r['profesor'])
+
+    # 2) Salas (solo las que están dibujadas en el plano; escaleras y conexiones se omiten)
+    salas = (
+        Sala.objects.select_related('piso')
+        .filter(x__isnull=False, y__isnull=False, ancho__isnull=False, alto__isnull=False)
+        .exclude(tipo__in=['escalera', 'conexion'])
+    )
+    encontradas = []
+    for s in salas:
+        nombre = _normalizar(s.nombre)
+        if all(t in nombre for t in terminos):
+            encontradas.append({
+                'tipo': 'sala',
+                'profesor': s.nombre,
+                'jornada': '',
+                'sala': s.nombre,
+                'edificio': s.piso.edificio,
+                'piso': s.piso.numero,
+            })
+    encontradas.sort(key=lambda r: r['profesor'])
+
+    resultados += encontradas
     return JsonResponse({'resultados': resultados[:8]})

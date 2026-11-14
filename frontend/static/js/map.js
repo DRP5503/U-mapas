@@ -1632,7 +1632,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const nombre = document.createElement('strong');
       nombre.textContent = r.profesor;
       const detalle = document.createElement('span');
-      detalle.textContent = `${r.sala} · ${r.edificio} · Piso ${r.piso}`;
+      detalle.textContent = r.tipo === 'sala'
+      ? `${r.edificio} · Piso ${r.piso}`
+      : `${r.sala} · ${r.edificio} · Piso ${r.piso}`;
       b.append(nombre, detalle);
       b.addEventListener('click', () => irAOficina(r));
       li.appendChild(b);
