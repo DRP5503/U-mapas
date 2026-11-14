@@ -8,14 +8,14 @@ const MapAPI = (() => {
   const getVistaPisoEl = () => document.getElementById('vista-piso');
 
   const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+    const match = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith(`${name}=`));
+    return match ? decodeURIComponent(match.split('=')[1]) : '';
   };
 
-  const getCSRFToken = () => {
-    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
-  };
+  const getCsrfToken = () =>
+    document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
 
   const urlPisos = (edificio) =>
     getVistaPisoEl().dataset.urlPisos.replace('EDIFICIO', encodeURIComponent(edificio));
@@ -41,6 +41,23 @@ const MapAPI = (() => {
 
   const urlEstadoFavorito = (salaId) =>
     getVistaPisoEl().dataset.urlEstadoFavorito.replace(/\/0\/$/, `/${salaId}/`);
+
+  const urlCrearReporte = () => getVistaPisoEl().dataset.urlCrearReporte;
+
+  const urlDetalleReporte = (reporteId) =>
+    getVistaPisoEl().dataset.urlDetalleReporte.replace(/\/0\/$/, `/${reporteId}/`);
+
+  const urlConfirmarReporte = (reporteId) =>
+    getVistaPisoEl().dataset.urlConfirmarReporte.replace(
+      /\/0\/confirmar\/$/,
+      `/${reporteId}/confirmar/`
+    );
+
+  const urlCerrarReporte = (reporteId) =>
+    getVistaPisoEl().dataset.urlCerrarReporte.replace(
+      /\/0\/cerrar\/$/,
+      `/${reporteId}/cerrar/`
+    );
 
   async function obtenerPisos(edificio) {
     const res = await fetch(urlPisos(edificio));
@@ -69,12 +86,10 @@ async function obtenerRutaSalas(desdeId, hastaId) {
   async function toggleFavorito(salaId) {
     const res = await fetch(urlToggleFavorito(salaId), {
       method: 'POST',
-      headers: { 'X-CSRFToken': getCSRFToken() },
+      headers: { 'X-CSRFToken': getCsrfToken() },
     });
 
-    // Si Django nos redirige al login, detenemos esto
-    if (res.redirected || res.status === 404) {
-      window.location.href = '/login';
+    if (res.redirected || res.status === 401 || res.status === 403 || res.status === 404) {
       return { ok: false, status: 401, data: {} };
     }
 
@@ -84,13 +99,53 @@ async function obtenerRutaSalas(desdeId, hastaId) {
 
   async function estadoFavorito(salaId) {
     const res = await fetch(urlEstadoFavorito(salaId));
-
-    // Si el usuario no está logueado, no hacer nada
-    if (res.redirected || res.status === 404) {
+    if (res.redirected || res.status === 401 || res.status === 403 || res.status === 404) {
       return { favorito: false };
     }
-
     return res.json().catch(() => ({ favorito: false }));
+  }
+
+  async function crearReporte(payload) {
+    const res = await fetch(urlCrearReporte(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  async function obtenerDetalleReporte(reporteId) {
+    const res = await fetch(urlDetalleReporte(reporteId));
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  async function confirmarReporte(reporteId) {
+    const res = await fetch(urlConfirmarReporte(reporteId), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  async function cerrarReporte(reporteId) {
+    const res = await fetch(urlCerrarReporte(reporteId), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
   }
 
   return {
@@ -100,5 +155,9 @@ async function obtenerRutaSalas(desdeId, hastaId) {
     obtenerRutaSalas,
     toggleFavorito,
     estadoFavorito,
+    crearReporte,
+    obtenerDetalleReporte,
+    confirmarReporte,
+    cerrarReporte,
   };
 })();

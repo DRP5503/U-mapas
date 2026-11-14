@@ -1,9 +1,11 @@
 """
 Modelos de datos principales del Mapa Interactivo DCC.
 """
+from datetime import timedelta
 import math
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -96,13 +98,75 @@ class Profesor(models.Model):
 class Reporte(models.Model):
     """Representa un reporte comunitario de estado o incidencia asociado a una sala o baño."""
 
-    sala = models.ForeignKey(Sala, on_delete=models.CASCADE)
-    descripcion = models.TextField()
+    TIPO = [
+        ('bano_fuera_servicio', 'Baño fuera de servicio'),
+        ('falta_papel', 'Falta papel'),
+        ('falta_jabon', 'Falta jabón'),
+        ('aseo', 'Problema de limpieza'),
+        ('espacio_cerrado', 'Espacio cerrado'),
+        ('proyector', 'Falla proyector'),
+        ('microfono', 'Falla micrófono'),
+        ('computadores', 'Falla computador'),
+        ('luz', 'Sin luz'),
+        ('aire_acondicionado', 'Falla aire acondicionado'),
+        ('gotera', 'Goteras'),
+        ('en_mantenimiento', 'En mantenimiento'),
+        ('otro', 'Otro inconveniente'),
+    ]
+
+    ESTADO = [
+        ('ACTIVO', 'Activo'),
+        ('RESUELTO', 'Resuelto'),
+        ('EXPIRADO', 'Expirado'),
+    ]
+
+    TTL_MINUTOS_POR_TIPO = {
+        'espacio_cerrado': 15,
+        'otro': 30,
+        'bano_fuera_servicio': 30,
+        'proyector': 60,
+        'microfono': 60,
+        'computadores': 60,
+        'aseo': 60,
+        'falta_papel': 120,
+        'falta_jabon': 120,
+        'aire_acondicionado': 120,
+        'luz': 360,
+        'gotera': 360,
+        'en_mantenimiento': 360,
+    }
+
+    sala = models.ForeignKey(Sala, on_delete=models.CASCADE, related_name='reportes')
+    autor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reportes_creados',
+    )
+    tipo = models.CharField(max_length=30, choices=TIPO, default='otro')
+    descripcion = models.TextField(max_length=500, blank=True, default='')
     fecha = models.DateTimeField(auto_now_add=True)
-    estado = models.CharField(max_length=20, default="Pendiente")
+    expira_en = models.DateTimeField(null=True, blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADO, default='ACTIVO')
+    confirmaciones = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def calcular_expiracion(self, desde=None):
+        """Calcula la fecha de expiración automática según la categoría del reporte."""
+        base = desde or timezone.now()
+        minutos = self.TTL_MINUTOS_POR_TIPO.get(self.tipo, 30)
+        return base + timedelta(minutes=minutos)
+
+    def save(self, *args, **kwargs):
+        if not self.expira_en:
+            self.expira_en = self.calcular_expiracion()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Reporte en {self.sala.nombre} - {self.estado}"
+        return f"Reporte ({self.get_tipo_display()}) en {self.sala.nombre} - {self.estado}"
 
 
 class BloqueHorario(models.Model):

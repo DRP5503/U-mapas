@@ -12,6 +12,12 @@ from .mapa import (
     ruta_nodos,
     ruta_salas,
 )
+from .reportes import (
+    cerrar_reporte_view,
+    confirmar_reporte_view,
+    crear_reporte_view,
+    detalle_reporte_view,
+)
 
 __all__ = [
     'index',
@@ -26,4 +32,8 @@ __all__ = [
     'mis_lugares_favoritos',
     'toggle_favorito',
     'estado_favorito',
+    'crear_reporte_view',
+    'detalle_reporte_view',
+    'confirmar_reporte_view',
+    'cerrar_reporte_view',
 ]

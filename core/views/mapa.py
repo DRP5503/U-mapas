@@ -1,10 +1,13 @@
 """
 Vistas y endpoints JSON asociados a la visualización del mapa, pisos y rutas.
 """
+from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 
-from core.models import LugarFavorito, Nodo, Piso, Sala
+from core.models import LugarFavorito, Nodo, Piso, Reporte, Sala
+from core.services.reportes import expirar_reportes_vencidos, serializar_reporte
 from core.services.rutas import calcular_ruta, calcular_ruta_nodos
 
 
@@ -20,9 +23,19 @@ def pisos_edificio(request, edificio):
 
 
 def piso_json(request, edificio, numero):
-    """Devuelve en JSON las dimensiones de un piso, sus salas con geometría y profesores."""
+    """Devuelve en JSON las dimensiones de un piso, sus salas con geometría, profesores y reportes activos."""
     piso = get_object_or_404(Piso, edificio__iexact=edificio, numero=numero)
-    salas = piso.salas.select_related('nodo').prefetch_related('profesores')
+    expirar_reportes_vencidos(piso=piso)
+
+    confirmados_ids = set(request.session.get('reportes_confirmados', []))
+    reportes_activos_qs = Reporte.objects.filter(
+        estado='ACTIVO', expira_en__gt=timezone.now()
+    ).select_related('sala', 'autor')
+
+    salas = piso.salas.select_related('nodo').prefetch_related(
+        'profesores',
+        Prefetch('reportes', queryset=reportes_activos_qs, to_attr='reportes_activos_list'),
+    )
     # Ids de las salas de este piso que el usuario tiene en favoritos (así el panel no necesita
     # consultar el estado sala por sala al abrirse).
     favoritos = set()
@@ -48,6 +61,14 @@ def piso_json(request, edificio, numero):
                 'nodo': {'x': s.nodo.x, 'y': s.nodo.y} if s.nodo else None,
                 'favorito': s.id in favoritos,
                 'profesores': [p.nombre for p in s.profesores.all()],
+                'reportes_activos': [
+                    serializar_reporte(
+                        r,
+                        usuario=request.user,
+                        confirmados_ids=confirmados_ids,
+                    )
+                    for r in getattr(s, 'reportes_activos_list', [])
+                ],
             }
             for s in salas
         ],
