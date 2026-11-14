@@ -5,10 +5,11 @@ from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.views.decorators.http import require_GET
 
-from core.models import LugarFavorito, Nodo, Piso, Reporte, Sala
+from core.models import LugarFavorito, Nodo, Piso, Profesor,Reporte, Sala
 from core.services.reportes import expirar_reportes_vencidos, serializar_reporte
-from core.services.rutas import calcular_ruta, calcular_ruta_nodos
+from core.services.rutas import _normalizar,calcular_ruta, calcular_ruta_nodos
 
 
 def index(request):
@@ -111,3 +112,29 @@ def ruta_salas(request, desde_id, hasta_id):
     if resultado is None:
         return JsonResponse({'error': 'No hay camino entre esos puntos'}, status=404)
     return JsonResponse(resultado)
+
+@require_GET
+def buscar(request):
+    """Busca profesores (por nombre) y salas (por nombre), sin tildes ni mayúsculas."""
+    terminos = _normalizar(request.GET.get('q', '')).split()
+    if not terminos or sum(len(t) for t in terminos) < 2:
+        return JsonResponse({'resultados': []})
+
+    resultados = []
+
+    # 1) Profesores con oficina asignada
+    profesores = Profesor.objects.filter(oficina__isnull=False).select_related('oficina__piso')
+    for p in profesores:
+        nombre = _normalizar(p.nombre)
+        if all(t in nombre for t in terminos):
+            sala = p.oficina
+            resultados.append({
+                'tipo': 'profesor',
+                'profesor': p.nombre,   # el JS muestra este campo como título
+                'jornada': p.jornada,
+                'sala': sala.nombre,
+                'edificio': sala.piso.edificio,
+                'piso': sala.piso.numero,
+            })
+    resultados.sort(key=lambda r: r['profesor'])
+    return JsonResponse({'resultados': resultados[:8]})

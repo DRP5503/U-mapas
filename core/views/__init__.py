@@ -11,6 +11,7 @@ from .mapa import (
     ruta_json,
     ruta_nodos,
     ruta_salas,
+    buscar,
 )
 from .reportes import (
     cerrar_reporte_view,
