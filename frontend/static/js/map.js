@@ -16,6 +16,7 @@ const AppState = {
   reportPanelView: 'closed', // 'closed' | 'list' | 'form'
   reportsExpanded: false,
   salaObjetivo: null, // Para guardar la sala a la que queremos ir por URL
+  profesorObjetivo: null,
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -590,6 +591,7 @@ async function renderFloor(edificio, numero, options = {}) {
       showRoom(salaEncontrada);
     }
     AppState.salaObjetivo = null; // Limpiamos para no re-abrir si el usuario navega a otro piso
+    AppState.profesorObjetivo = null;
   }
 }
 
@@ -1323,7 +1325,40 @@ function agregarBotonFavorito(sala, panel) {
     }
   });
 }
+/** Tarjeta de perfil resumida de un profesor; lleva a su página de perfil. */
+function crearListaProfesores(profesores) {
+  const lista = document.createElement('div');
+  lista.className = 'prof-list';
 
+  profesores.forEach((p) => {
+    const a = document.createElement('a');
+    a.className = 'prof-card';
+    if (p.id === AppState.profesorObjetivo) a.classList.add('is-highlighted');
+    a.href = MapAPI.urlPerfilProfesor(p.id);
+
+    const avatar = document.createElement('span');
+    avatar.className = 'prof-avatar';
+    avatar.textContent = p.nombre.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+    const info = document.createElement('span');
+    info.className = 'prof-info';
+    const nombre = document.createElement('span');
+    nombre.className = 'prof-name';
+    nombre.textContent = p.nombre;
+    const meta = document.createElement('span');
+    meta.className = 'prof-meta';
+    meta.textContent = p.jornada ? `Jornada ${p.jornada}` : 'Académico DCC';
+    info.append(nombre, meta);
+
+    const cta = document.createElement('span');
+    cta.className = 'prof-card-cta';
+    cta.textContent = 'Ver perfil →';
+
+    a.append(avatar, info, cta);
+    lista.appendChild(a);
+  });
+  return lista;
+}
 function showRoom(sala, options = {}) {
   const mismaSala = AppState.selectedRoomName === sala.nombre;
   const reportes = sala.reportes_activos || [];
@@ -1371,14 +1406,10 @@ function showRoom(sala, options = {}) {
   contenido.appendChild(header);
 
   if (sala.profesores.length) {
-    const lista = document.createElement('ul');
-    lista.className = 'room-prof-list';
-    sala.profesores.forEach((nombre) => {
-      const li = document.createElement('li');
-      li.textContent = nombre;
-      lista.appendChild(li);
-    });
-    contenido.appendChild(lista);
+    const profesores = sala.profesores_detalle || [];
+    if (profesores.length) {
+      contenido.appendChild(crearListaProfesores(profesores));
+    };
   }
 
   // 2. Tarjetas estilo Waze (si hay alertas) + botón de reportar
@@ -1581,7 +1612,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const paramEdificio = urlParams.get('edificio');
     const paramPiso = urlParams.get('piso');
     const paramSala = urlParams.get('sala');
-
+    const paramProfesor = urlParams.get('profesor');
+    AppState.profesorObjetivo = paramProfesor ? Number(paramProfesor) : null;
     if (paramEdificio) {
       AppState.salaObjetivo = paramSala;
       openBuilding(paramEdificio, paramPiso);
@@ -1604,6 +1636,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const irAOficina = (r) => {
     cerrar();
     input.value = r.profesor;
+    AppState.profesorObjetivo = r.profesor_id ?? null;
     if (AppState.irAMapa) {
       // Ya estamos en el mapa: reutiliza el mecanismo de favoritos
       AppState.salaObjetivo = r.sala;

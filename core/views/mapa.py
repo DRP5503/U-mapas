@@ -62,6 +62,10 @@ def piso_json(request, edificio, numero):
                 'nodo': {'x': s.nodo.x, 'y': s.nodo.y} if s.nodo else None,
                 'favorito': s.id in favoritos,
                 'profesores': [p.nombre for p in s.profesores.all()],
+                'profesores_detalle': [
+                    {'id': p.id, 'nombre': p.nombre, 'jornada': p.jornada}
+                    for p in s.profesores.all()
+                ],
                 'reportes_activos': [
                     serializar_reporte(
                         r,
@@ -130,6 +134,7 @@ def buscar(request):
             sala = p.oficina
             resultados.append({
                 'tipo': 'profesor',
+                'profesor_id': p.id,
                 'profesor': p.nombre,   # el JS muestra este campo como título
                 'jornada': p.jornada,
                 'sala': sala.nombre,
@@ -150,6 +155,7 @@ def buscar(request):
         if all(t in nombre for t in terminos):
             encontradas.append({
                 'tipo': 'sala',
+                'profesor_id': None,
                 'profesor': s.nombre,
                 'jornada': '',
                 'sala': s.nombre,

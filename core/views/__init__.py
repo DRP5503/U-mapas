@@ -4,6 +4,7 @@ Re-exporta las vistas de cada dominio para mantener compatibilidad con core/urls
 """
 from .auth import login_user, logout_user, register_user
 from .favoritos import estado_favorito, mis_lugares_favoritos, toggle_favorito
+from .profesores import perfil_profesor
 from .mapa import (
     index,
     piso_json,
@@ -37,4 +38,5 @@ __all__ = [
     'detalle_reporte_view',
     'confirmar_reporte_view',
     'cerrar_reporte_view',
+    'perfil_profesor',
 ]

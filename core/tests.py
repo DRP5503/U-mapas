@@ -2,6 +2,8 @@
 Pruebas automatizadas para modelos, servicios de rutas, reportes y endpoints de la API.
 """
 from datetime import timedelta
+from datetime import time
+from core.models import BloqueHorario
 import json
 
 from django.test import TestCase
@@ -309,3 +311,23 @@ class RutaEntreMapasTests(TestCase):
 
         res = self.client.get(reverse('core:piso_json', args=['Norte', 3]))
         self.assertIn('id', res.json()['salas'][0])
+
+class PerfilProfesorTests(TestCase):
+    def setUp(self):
+        piso = Piso.objects.create(edificio='Norte', numero=3, ancho=1000, alto=600)
+        sala = Sala.objects.create(nombre='N331', piso=piso, tipo='oficina', x=0, y=0, ancho=20, alto=20)
+        self.prof = Profesor.objects.create(nombre='Docente Prueba', oficina=sala, jornada='Completa')
+        BloqueHorario.objects.create(profesor=self.prof, dia_semana='Miércoles',
+                                     hora_inicio=time(10, 0), hora_fin=time(12, 0))
+        BloqueHorario.objects.create(profesor=self.prof, dia_semana='Lunes',
+                                     hora_inicio=time(9, 0), hora_fin=time(10, 0))
+
+    def test_perfil_ordena_dias_y_muestra_oficina(self):
+        res = self.client.get(reverse('core:perfil_profesor', args=[self.prof.id]))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual([d['nombre'] for d in res.context['dias']], ['Lunes', 'Miércoles'])
+        self.assertContains(res, 'N331')
+
+    def test_buscar_incluye_profesor_id(self):
+        res = self.client.get(reverse('core:buscar'), {'q': 'docente'})
+        self.assertEqual(res.json()['resultados'][0]['profesor_id'], self.prof.id)
