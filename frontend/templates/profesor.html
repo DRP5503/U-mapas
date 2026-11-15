@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ profesor.nombre }} | Mapa Interactivo DCC{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/perfil.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<section class="perfil-page">
+    <a class="perfil-back" href="{% url 'core:index' %}">← Volver al mapa</a>
+
+    <header class="perfil-card perfil-header">
+        <div class="perfil-avatar" aria-hidden="true">{{ iniciales }}</div>
+        <div class="perfil-heading">
+            <h1>{{ profesor.nombre }}</h1>
+            <p class="perfil-sub">
+                {% if profesor.jornada %}Jornada {{ profesor.jornada }}{% else %}Académico DCC{% endif %}
+            </p>
+            {% if disponible_ahora %}
+                <span class="perfil-badge">● En horario de atención ahora</span>
+            {% endif %}
+        </div>
+        <div class="perfil-actions">
+            {# TODO: implementar solicitud de reunión (modal/formulario + modelo Reunion) #}
+            <button type="button" id="btnSolicitarReunion" class="btn btn-primary" disabled
+                    aria-disabled="true" title="Próximamente">
+                Solicitar reunión
+            </button>
+            <span class="perfil-soon">Próximamente</span>
+        </div>
+    </header>
+
+    <div class="perfil-grid">
+        <article class="perfil-card">
+            <h2>Oficina</h2>
+            {% if oficina %}
+                <p class="perfil-big">{{ oficina.nombre }}</p>
+                <p class="perfil-muted">{{ oficina.piso.edificio }} · Piso {{ oficina.piso.numero }}</p>
+                <a class="btn btn-outline btn-sm"
+                   href="{% url 'core:index' %}?edificio={{ oficina.piso.edificio|urlencode }}&piso={{ oficina.piso.numero }}&sala={{ oficina.nombre|urlencode }}&profesor={{ profesor.id }}">
+                    Ver en el mapa
+                </a>
+            {% else %}
+                <p class="perfil-muted">Sin oficina asignada.</p>
+            {% endif %}
+        </article>
+
+        <article class="perfil-card">
+            <h2>Contacto</h2>
+            <dl class="perfil-dl">
+                <dt>Correo</dt>
+                <dd>{% if profesor.email %}<a href="mailto:{{ profesor.email }}">{{ profesor.email }}</a>{% else %}<span class="perfil-muted">No informado</span>{% endif %}</dd>
+                <dt>Área</dt>
+                <dd>{% if profesor.area %}{{ profesor.area }}{% else %}<span class="perfil-muted">No informada</span>{% endif %}</dd>
+                <dt>Sitio web</dt>
+                <dd>{% if profesor.sitio_web %}<a href="{{ profesor.sitio_web }}" target="_blank" rel="noopener noreferrer">{{ profesor.sitio_web }}</a>{% else %}<span class="perfil-muted">No informado</span>{% endif %}</dd>
+            </dl>
+        </article>
+
+        <article class="perfil-card perfil-card--wide">
+            <h2>Horario de atención</h2>
+            {% if dias %}
+                <ul class="perfil-horario">
+                    {% for dia in dias %}
+                        <li class="{% if dia.es_hoy %}es-hoy{% endif %}">
+                            <span class="perfil-dia">{{ dia.nombre }}{% if dia.es_hoy %} <small>(hoy)</small>{% endif %}</span>
+                            <span class="perfil-horas">
+                                {% for b in dia.bloques %}
+                                    <span class="perfil-bloque">{{ b.hora_inicio|time:"H:i" }} – {{ b.hora_fin|time:"H:i" }}</span>
+                                {% endfor %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="perfil-muted">Este profesor aún no ha publicado horarios de atención.</p>
+            {% endif %}
+        </article>
+    </div>
+</section>
+{% endblock %}

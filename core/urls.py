@@ -25,4 +25,5 @@ urlpatterns = [
     path('api/reportes/<int:reporte_id>/confirmar/', views.confirmar_reporte_view, name='confirmar_reporte'),
     path('api/reportes/<int:reporte_id>/cerrar/', views.cerrar_reporte_view, name='cerrar_reporte'),
     path('api/buscar/', views.buscar, name='buscar'),
+    path('profesores/<int:profesor_id>/', views.perfil_profesor, name='perfil_profesor'),
 ]

@@ -147,7 +147,8 @@ async function obtenerRutaSalas(desdeId, hastaId) {
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, data };
   }
-
+  const urlPerfilProfesor = (id) =>
+    getVistaPisoEl().dataset.urlPerfilProfesor.replace(/\/0\/$/, `/${id}/`);
   return {
     obtenerPisos,
     obtenerPlanoPiso,
@@ -159,5 +160,6 @@ async function obtenerRutaSalas(desdeId, hastaId) {
     obtenerDetalleReporte,
     confirmarReporte,
     cerrarReporte,
+     urlPerfilProfesor,
   };
 })();
