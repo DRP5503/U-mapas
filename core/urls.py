@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/reportes/<int:reporte_id>/', views.detalle_reporte_view, name='detalle_reporte'),
     path('api/reportes/<int:reporte_id>/confirmar/', views.confirmar_reporte_view, name='confirmar_reporte'),
     path('api/reportes/<int:reporte_id>/cerrar/', views.cerrar_reporte_view, name='cerrar_reporte'),
+    path('api/buscar/', views.buscar, name='buscar'),
 ]

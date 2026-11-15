@@ -72,6 +72,17 @@ class MapaRutasTests(TestCase):
             username='estudiante1', password=' TestPass123!', nombre='Estudiante', rol='ESTUDIANTE'
         )
         self.assertEqual(user.rol, 'ESTUDIANTE')
+        def test_buscar_profesor_devuelve_oficina(self):
+            res = self.client.get(reverse('core:buscar'), {'q': 'docénte pru'})  # tolera tildes
+            self.assertEqual(res.status_code, 200)
+            r = res.json()['resultados']
+            self.assertEqual(len(r), 1)
+            self.assertEqual(
+                (r[0]['sala'], r[0]['edificio'], r[0]['piso']), ('N331', 'Norte', 3)
+             )
+
+            self.assertEqual(self.client.get(reverse('core:buscar'), {'q': 'a'}).json()['resultados'], [])
+
 
 
 class SistemaReportesTests(TestCase):

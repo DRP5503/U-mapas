@@ -1588,3 +1588,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+/** Buscador del navbar: busca profesores y abre su oficina en el mapa. */
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.querySelector('.search-input');
+  const boton = document.querySelector('.search-action-btn');
+  const lista = document.getElementById('searchResults');
+  if (!input || !lista) return;
+
+  let timer = null;
+  let token = 0;
+
+  const cerrar = () => { lista.hidden = true; lista.replaceChildren(); };
+
+  const irAOficina = (r) => {
+    cerrar();
+    input.value = r.profesor;
+    if (AppState.irAMapa) {
+      // Ya estamos en el mapa: reutiliza el mecanismo de favoritos
+      AppState.salaObjetivo = r.sala;
+      AppState.irAMapa(r.edificio, r.piso);
+    } else {
+      // Estamos en login/registro/favoritos: vuelve al mapa con los parámetros en la URL
+      const p = new URLSearchParams({ edificio: r.edificio, piso: r.piso, sala: r.sala });
+      window.location.href = `${input.dataset.urlIndex}?${p}`;
+    }
+  };
+
+  const mostrar = (resultados, q) => {
+    lista.replaceChildren();
+    if (!resultados.length) {
+      const li = document.createElement('li');
+      li.className = 'search-empty';
+      li.textContent = `Sin resultados para «${q}»`;
+      lista.appendChild(li);
+    }
+    resultados.forEach((r) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'search-result';
+      const nombre = document.createElement('strong');
+      nombre.textContent = r.profesor;
+      const detalle = document.createElement('span');
+      detalle.textContent = r.tipo === 'sala'
+      ? `${r.edificio} · Piso ${r.piso}`
+      : `${r.sala} · ${r.edificio} · Piso ${r.piso}`;
+      b.append(nombre, detalle);
+      b.addEventListener('click', () => irAOficina(r));
+      li.appendChild(b);
+      lista.appendChild(li);
+    });
+    lista.hidden = false;
+  };
+
+  const buscar = async () => {
+    const q = input.value.trim();
+    if (q.length < 2) { cerrar(); return null; }
+    const mio = ++token;
+    try {
+      const res = await fetch(`${input.dataset.urlBuscar}?q=${encodeURIComponent(q)}`);
+      if (!res.ok) return null;
+      const { resultados } = await res.json();
+      if (mio !== token) return null; // llegó una respuesta más nueva
+      mostrar(resultados, q);
+      return resultados;
+    } catch (err) {
+      console.error('Error en la búsqueda:', err);
+      return null;
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(buscar, 250); // debounce
+  });
+
+  const confirmar = async () => {
+    const resultados = await buscar();
+    if (resultados?.length) irAOficina(resultados[0]);
+  };
+  boton?.addEventListener('click', confirmar);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmar(); }
+    if (e.key === 'Escape') cerrar();
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.navbar-search')) cerrar();
+  });
+});
