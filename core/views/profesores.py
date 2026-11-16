@@ -2,7 +2,7 @@
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
-from core.models import Profesor
+from core.models import Profesor, ProfesorFavorito
 from core.services.rutas import _normalizar
 
 ORDEN_DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
@@ -43,6 +43,9 @@ def perfil_profesor(request, profesor_id):
 
     partes = profesor.nombre.split()
     iniciales = ''.join(p[0] for p in partes[:2]).upper() or '?'
+    es_favorito = request.user.is_authenticated and ProfesorFavorito.objects.filter(
+        usuario=request.user, profesor=profesor,
+    ).exists()
 
     return render(request, 'profesor.html', {
         'profesor': profesor,
@@ -50,4 +53,5 @@ def perfil_profesor(request, profesor_id):
         'dias': dias,
         'disponible_ahora': disponible_ahora,
         'iniciales': iniciales,
+        'es_favorito': es_favorito,
     })

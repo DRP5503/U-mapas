@@ -5,11 +5,15 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/perfil.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'css/favoritos_profesores.css' %}?v=1">
 {% endblock %}
 
 {% block content %}
 <section class="perfil-page">
     <a class="perfil-back" href="{% url 'core:index' %}">← Volver al mapa</a>
+    {% for message in messages %}
+        <p class="favoritos-aviso" role="status">{{ message }}</p>
+    {% endfor %}
 
     <header class="perfil-card perfil-header">
         <div class="perfil-avatar" aria-hidden="true">{{ iniciales }}</div>
@@ -23,6 +27,23 @@
             {% endif %}
         </div>
         <div class="perfil-actions">
+            {% if user.is_authenticated %}
+                {% if es_favorito %}
+                    <form method="post" action="{% url 'core:quitar_favorito' profesor.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="desde" value="perfil">
+                        <button type="submit" class="btn btn-outline">Quitar de favoritos</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'core:guardar_profesor_favorito' profesor.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline">Guardar en favoritos</button>
+                    </form>
+                {% endif %}
+                <a href="{% url 'core:mis_lugares_favoritos' %}" class="perfil-back">Ver mis favoritos</a>
+            {% else %}
+                <a href="{% url 'core:login_user' %}" class="btn btn-outline">Iniciar sesión para guardar</a>
+            {% endif %}
             {# TODO: implementar solicitud de reunión (modal/formulario + modelo Reunion) #}
             <button type="button" id="btnSolicitarReunion" class="btn btn-primary" disabled
                     aria-disabled="true" title="Próximamente">

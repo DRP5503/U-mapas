@@ -1,0 +1,103 @@
+.profesores-favoritos {
+  margin-bottom: 2rem;
+}
+
+.profesores-favoritos h2,
+.lugares-favoritos-titulo {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.profesores-favoritos-form,
+.profesor-favorito-card,
+.profesores-favoritos-vacio {
+  padding: 1.25rem;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.profesores-favoritos-form {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.profesores-favoritos-form .form-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.profesores-favoritos-form button {
+  margin-top: 1.85rem;
+  min-height: 44px;
+}
+
+.profesores-favoritos-lista {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.profesor-favorito-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profesor-favorito-datos {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profesor-favorito-datos h3 {
+  font-size: 1rem;
+}
+
+.profesor-favorito-datos a {
+  color: var(--color-primary);
+}
+
+.profesor-favorito-datos p {
+  margin: 0.35rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.profesor-favorito-card form {
+  flex-shrink: 0;
+}
+
+.favoritos-aviso {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-text-main);
+  background: var(--color-accent-teal-light);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 640px) {
+  .favoritos-page {
+    padding: 1rem 0 !important;
+  }
+
+  .profesores-favoritos-form {
+    flex-direction: column;
+  }
+
+  .profesores-favoritos-form .form-group,
+  .profesores-favoritos-form button {
+    width: 100%;
+  }
+
+  .profesores-favoritos-form button {
+    margin-top: 0;
+  }
+
+  .profesor-favorito-card {
+    flex-wrap: wrap;
+  }
+}
