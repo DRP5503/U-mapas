@@ -11,6 +11,8 @@ urlpatterns = [
     path('logout', views.logout_user, name='logout_user'),
     # Favoritos
     path('favoritos/', views.mis_lugares_favoritos, name='mis_lugares_favoritos'),
+    path('favoritos/profesores/<int:profesor_id>/guardar/', views.guardar_profesor_favorito, name='guardar_profesor_favorito'),
+    path('favoritos/<int:profesor_id>/quitar/', views.quitar_favorito, name='quitar_favorito'),
     path('api/favoritos/toggle/<int:sala_id>/', views.toggle_favorito, name='toggle_favorito'),
     path('api/favoritos/estado/<int:sala_id>/', views.estado_favorito, name='estado_favorito'),
     # API de pisos y rutas

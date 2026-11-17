@@ -3,6 +3,7 @@ Modelos de datos principales del Mapa Interactivo DCC.
 """
 from datetime import timedelta
 import math
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
@@ -93,6 +94,23 @@ class Profesor(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class ProfesorFavorito(models.Model):
+    """Profesor guardado en la lista personal de un usuario."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='profesores_favoritos',
+    )
+    profesor = models.ForeignKey(Profesor, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['usuario', 'profesor'], name='favorito_usuario_profesor_unico',
+            ),
+        ]
 
 
 class Reporte(models.Model):

@@ -1,15 +1,59 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Mis Lugares Favoritos | Mapa Interactivo DCC{% endblock %}
+{% block title %}Mis favoritos | Mapa Interactivo DCC{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/favoritos_profesores.css' %}?v=1">
+{% endblock %}
 
 {% block content %}
 <section class="favoritos-page" style="padding: 2rem; max-width: 900px; margin: 0 auto; overflow-y: auto; width: 100%;">
     <header class="favoritos-header" style="margin-bottom: 2rem;">
-        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-main);">Mis Lugares Favoritos</h1>
-        <p style="color: var(--color-text-muted); margin-top: 0.5rem;">Haz clic en una tarjeta para ir directamente a esa ubicación en el mapa.</p>
+        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-main);">Mis favoritos</h1>
     </header>
 
+    {% for message in messages %}
+        <p class="favoritos-aviso" role="status">{{ message }}</p>
+    {% endfor %}
+
+    <section class="profesores-favoritos" aria-labelledby="profesores-favoritos-titulo">
+        <h2 id="profesores-favoritos-titulo">Profesores favoritos</h2>
+        <form method="post" action="{% url 'core:mis_lugares_favoritos' %}" class="profesores-favoritos-form auth-form">
+            {% csrf_token %}
+            <div class="form-group{% if form.profesor.errors %} has-error{% endif %}">
+                {{ form.profesor.label_tag }}
+                {{ form.profesor }}
+                {% for error in form.profesor.errors %}
+                    <p class="form-error" role="alert">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar profesor</button>
+        </form>
+        <ul class="profesores-favoritos-lista">
+            {% for favorito in profesores_favoritos %}
+                <li class="profesor-favorito-card">
+                    <div class="profesor-favorito-datos">
+                        <h3><a href="{% url 'core:perfil_profesor' favorito.profesor_id %}">{{ favorito.profesor.nombre }}</a></h3>
+                        {% if favorito.profesor.oficina %}
+                            <p>Oficina {{ favorito.profesor.oficina.nombre }} · {{ favorito.profesor.oficina.piso.edificio }} · Piso {{ favorito.profesor.oficina.piso.numero }}</p>
+                        {% else %}
+                            <p>Oficina sin asignar</p>
+                        {% endif %}
+                        <a href="{% url 'core:perfil_profesor' favorito.profesor_id %}">Ver perfil y horarios</a>
+                    </div>
+                    <form method="post" action="{% url 'core:quitar_favorito' favorito.profesor_id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline" aria-label="Quitar a {{ favorito.profesor.nombre }} de favoritos">Quitar</button>
+                    </form>
+                </li>
+            {% empty %}
+                <li class="profesores-favoritos-vacio">Todavía no tienes profesores guardados. Selecciona uno arriba o guárdalo desde su perfil.</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <h2 class="lugares-favoritos-titulo">Lugares favoritos</h2>
     {% if favoritos %}
         <div class="favoritos-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
             {% for fav in favoritos %}
