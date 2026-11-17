@@ -7,7 +7,11 @@ from .favoritos import (
     estado_favorito, guardar_profesor_favorito, mis_lugares_favoritos,
     quitar_favorito, toggle_favorito,
 )
-from .profesores import perfil_profesor
+from .profesores import (
+    agregar_bloque_horario,
+    eliminar_bloque_horario,
+    perfil_profesor,
+)
 from .mapa import (
     index,
     piso_json,
@@ -44,4 +48,6 @@ __all__ = [
     'confirmar_reporte_view',
     'cerrar_reporte_view',
     'perfil_profesor',
+    'agregar_bloque_horario',
+    'eliminar_bloque_horario',
 ]

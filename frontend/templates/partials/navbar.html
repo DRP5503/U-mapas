@@ -40,6 +40,13 @@
             <div class="navbar-right-controls">
                 
                 {% if user.is_authenticated %}
+                    {% if user.rol == 'PROFESOR' and user.profesor_perfil %}
+                        <!-- Acceso directo al perfil docente (Solo si tiene perfil vinculado) -->
+                        <a href="{% url 'core:perfil_profesor' user.profesor_perfil.id %}" class="btn-mi-perfil-link" title="Configurar mis horarios" style="display:inline-flex; align-items:center; height:44px; padding:0 0.85rem; font-size:0.82rem; font-weight:600; color:#0F766E; background:#F0FDFA; border:1.5px solid #30c4b0; border-radius:9999px; text-decoration:none; transition:all 0.15s; margin-right: 0.5rem;">
+                            Mi Perfil
+                        </a>
+                    {% endif %}
+
                     <!-- Botón de Favoritos (Solo si está logueado) -->
                     <a href="{% url 'core:mis_lugares_favoritos' %}" class="btn-favoritos-link" title="Mis favoritos" style="display:inline-flex; align-items:center; height:44px; padding:0 0.85rem; font-size:0.82rem; font-weight:600; color:var(--color-text-main); background:#FFF; border:1.5px solid var(--color-border-dark); border-radius:9999px; text-decoration:none; transition:all 0.15s; margin-right: 0.5rem;">
                         ★ Favoritos

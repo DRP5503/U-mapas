@@ -82,6 +82,13 @@ class Sala(models.Model):
 class Profesor(models.Model):
     """Representa a un académico o docente del DCC y su oficina asignada."""
 
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='profesor_perfil',
+    )
     nombre = models.CharField(max_length=150)
     oficina = models.ForeignKey(
         Sala,
@@ -190,13 +197,26 @@ class Reporte(models.Model):
 class BloqueHorario(models.Model):
     """Representa un bloque semanal de horario de atención para un profesor."""
 
-    profesor = models.ForeignKey(Profesor, on_delete=models.CASCADE)
-    dia_semana = models.CharField(max_length=20)
+    DIAS_SEMANA = [
+        ('Lunes', 'Lunes'),
+        ('Martes', 'Martes'),
+        ('Miércoles', 'Miércoles'),
+        ('Jueves', 'Jueves'),
+        ('Viernes', 'Viernes'),
+    ]
+
+    profesor = models.ForeignKey(
+        Profesor, on_delete=models.CASCADE, related_name='bloques_horario'
+    )
+    dia_semana = models.CharField(max_length=20, choices=DIAS_SEMANA)
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
 
+    class Meta:
+        ordering = ['hora_inicio']
+
     def __str__(self):
-        return f"{self.profesor.nombre} - {self.dia_semana}"
+        return f"{self.profesor.nombre} - {self.dia_semana} ({self.hora_inicio:%H:%M}-{self.hora_fin:%H:%M})"
 
 
 class Nodo(models.Model):

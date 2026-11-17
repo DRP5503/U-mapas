@@ -82,6 +82,27 @@
 
         <article class="perfil-card perfil-card--wide">
             <h2>Horario de atención</h2>
+
+            {% if es_dueno %}
+                <form method="post" action="{% url 'core:agregar_bloque_horario' profesor.id %}"
+                      style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
+                    {% csrf_token %}
+                    <div>
+                        <label for="{{ form_bloque.dia_semana.id_for_label }}" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Día</label>
+                        {{ form_bloque.dia_semana }}
+                    </div>
+                    <div>
+                        <label for="{{ form_bloque.hora_inicio.id_for_label }}" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Desde</label>
+                        {{ form_bloque.hora_inicio }}
+                    </div>
+                    <div>
+                        <label for="{{ form_bloque.hora_fin.id_for_label }}" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Hasta</label>
+                        {{ form_bloque.hora_fin }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">+ Agregar bloque</button>
+                </form>
+            {% endif %}
+
             {% if dias %}
                 <ul class="perfil-horario">
                     {% for dia in dias %}
@@ -89,7 +110,20 @@
                             <span class="perfil-dia">{{ dia.nombre }}{% if dia.es_hoy %} <small>(hoy)</small>{% endif %}</span>
                             <span class="perfil-horas">
                                 {% for b in dia.bloques %}
-                                    <span class="perfil-bloque">{{ b.hora_inicio|time:"H:i" }} – {{ b.hora_fin|time:"H:i" }}</span>
+                                    <span class="perfil-bloque" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                                        {{ b.hora_inicio|time:"H:i" }} – {{ b.hora_fin|time:"H:i" }}
+                                        {% if es_dueno %}
+                                            <form method="post" action="{% url 'core:eliminar_bloque_horario' profesor.id b.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" aria-label="Eliminar bloque" title="Eliminar bloque"
+                                                        style="background: none; border: none; color: #dc2626; cursor: pointer; font-weight: bold; padding: 0 2px;">
+                                                    ×
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </span>
+                                {% empty %}
+                                    <span class="perfil-muted">Sin bloques asignados</span>
                                 {% endfor %}
                             </span>
                         </li>

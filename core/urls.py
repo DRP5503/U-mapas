@@ -27,5 +27,8 @@ urlpatterns = [
     path('api/reportes/<int:reporte_id>/confirmar/', views.confirmar_reporte_view, name='confirmar_reporte'),
     path('api/reportes/<int:reporte_id>/cerrar/', views.cerrar_reporte_view, name='cerrar_reporte'),
     path('api/buscar/', views.buscar, name='buscar'),
+    # Perfil y horarios de profesores
     path('profesores/<int:profesor_id>/', views.perfil_profesor, name='perfil_profesor'),
+    path('profesores/<int:profesor_id>/horarios/agregar/', views.agregar_bloque_horario, name='agregar_bloque_horario'),
+    path('profesores/<int:profesor_id>/horarios/<int:bloque_id>/eliminar/', views.eliminar_bloque_horario, name='eliminar_bloque_horario'),
 ]
