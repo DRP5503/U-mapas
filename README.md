@@ -1,127 +1,196 @@
-# U-Mapas — Mapa Interactivo DCC (Beauchef 851)
+<p align="center">
+  <img src="https://img.shields.io/badge/Django-6.1-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django 6.1"/>
+  <img src="https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.13"/>
+  <img src="https://img.shields.io/badge/NetworkX-3.7-4B8BBE?style=for-the-badge" alt="NetworkX 3.7"/>
+  <img src="https://img.shields.io/badge/License-Academic-blue?style=for-the-badge" alt="Academic"/>
+</p>
 
-Aplicación web interactiva para orientarse dentro del Departamento de Ciencias de la Computación (DCC — FCFM, Universidad de Chile), consultar oficinas y horarios de atención docente, y calcular rutas óptimas entre espacios.
+<h1 align="center">U-Mapas</h1>
+<h3 align="center">Interactive Indoor Map for the DCC — Beauchef 851</h3>
 
----
-
-## Historial de Cambios Recientes
-* **12 de Noviembre de 2026:** Se implementó el sistema de **Lugares Favoritos** (Tarea 424), permitiendo a los usuarios guardar salas y acceder a ellas directamente desde una nueva vista. Además, se conectó el sistema de Login/Registro/Logout en la barra de navegación superior (Tarea 432).
-
----
-
-## Estructura del Proyecto
-
-```text
-├── manage.py               # CLI de administración de Django
-├── requirements.txt        # Dependencias de Python (Django, NetworkX)
-├── config/                 # Configuración global del proyecto Django
-├── core/                   # Backend (Modelos, Servicios, Vistas/API, Comandos, Tests)
-│   ├── models.py           # Modelos (User, Piso, Sala, Profesor, BloqueHorario, Reporte, Nodo, Arista, LugarFavorito)
-│   ├── forms.py            # Formularios de autenticación y registro (NewUserForm, LoginForm)
-│   ├── services/           # Lógica de negocio (construcción de grafos y algoritmo Dijkstra en rutas.py)
-│   ├── views/              # Controladores HTTP divididos por dominio (mapa.py, auth.py, favoritos.py)
-│   ├── management/         # Comando maestro poblar_datos
-│   ├── urls.py             # Rutas de vistas y endpoints de la API
-│   └── tests.py            # Suite de pruebas automatizadas
-├── frontend/               # Frontend (Plantillas HTML y archivos estáticos CSS/JS)
-│   ├── templates/          # base.html, index.html, login.html, register.html, favoritos.html y partials/
-│   └── static/             # Estilos (css/style.css, piso.css, auth.css) y scripts (js/api.js, js/map.js)
-├── data/                   # Semillas de datos limpias en formato CSV
-│   ├── salas.csv           # Salas y su geometría SVG (x, y, ancho, alto)
-│   ├── profesores.csv      # Nómina docente y oficina asignada
-│   ├── nodos.csv           # Nodos del grafo de navegación (puertas y pasillos)
-│   └── aristas.csv         # Conexiones entre nodos
-└── docs/                   # Documentación y diagramas del proyecto
-    └── diagrama_modelo_datos.png
-```
+<p align="center">
+  Navigate the Department of Computer Science (DCC&nbsp;— FCFM, Universidad de Chile) with an interactive SVG-based map.<br/>
+  Look up professor offices, check office-hour schedules, bookmark your favorite rooms, and get <strong>shortest-path directions</strong> between any two spaces — all in your browser.
+</p>
 
 ---
 
-## Guía de Instalación Rápida (Paso a Paso)
+## Features
 
-Sigue estos pasos en orden para levantar el proyecto desde cero en tu computador local.
+| Feature | Description |
+|:--------|:------------|
+| **Campus Overview** | Bird's-eye schematic of the Norte and Poniente buildings with one-click drill-down. |
+| **Floor Viewer** | Detailed SVG floor plans — click any room to see its type, assigned professors, and office hours. |
+| **Shortest Path** | Dijkstra-powered routing between any two rooms on the same floor via NetworkX. |
+| **Favorites** | Bookmark rooms and professors for quick access from a personal dashboard. |
+| **Auth System** | Register / Log in / Log out with role-based accounts (Professor, Student, Staff). |
+| **Community Reports** | Submit and confirm issue reports linked to specific rooms. |
 
+---
 
-**Paso 1: Clonar el repositorio y entrar a la carpeta**
+## Screenshots
+
+<!-- 
+  To add screenshots: run the app, take screenshots of each view, 
+  and save them in the docs/ folder with these names:
+  - screenshot_campus.png   (main campus overview)
+  - screenshot_floor.png    (floor plan viewer)
+  - screenshot_login.png    (login page)
+  - screenshot_register.png (register page)
+-->
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Campus Overview</strong><br/>
+      <img src="docs/screenshot_campus.png" alt="Campus overview — schematic of Norte and Poniente buildings" width="100%"/>
+    </td>
+    <td align="center" width="50%">
+      <strong>Floor Plan Viewer</strong><br/>
+      <img src="docs/screenshot_floor.png" alt="Floor plan view — rooms, offices and labs" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Login</strong><br/>
+      <img src="docs/screenshot_login.png" alt="Login page" width="100%"/>
+    </td>
+    <td align="center" width="50%">
+      <strong>Register</strong><br/>
+      <img src="docs/screenshot_register.png" alt="Register page with role selection" width="100%"/>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|:------|:-----------|
+| Backend | Django 6.1 (views, ORM, auth) |
+| Routing Engine | NetworkX 3.7 — Dijkstra shortest-path |
+| Frontend | Vanilla JS + SVG floor plans, Inter font |
+| Data Seeds | CSV files loaded via custom management command |
+| Database | SQLite (dev) |
+
+---
+
+## Quick Start
+
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+# 1. Clone & enter
+git clone https://github.com/<your-org>/2026-2-CC4401-grupo-6.git
 cd 2026-2-CC4401-grupo-6
-```
 
-**Paso 2: Crear y activar el entorno virtual**
-* Crear el entorno: `python -m venv venv`
-* Activar en Windows: `.\venv\Scripts\activate`
-* Activar en Mac/Linux: `source venv/bin/activate`
-*(Sabrás que está activo porque verás un `(venv)` al inicio de tu línea de comandos).*
+# 2. Virtual environment
+python -m venv venv
+# Windows
+.\venv\Scripts\activate
+# macOS / Linux
+source venv/bin/activate
 
-**Paso 3: Instalar las dependencias**
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
-**Paso 4: Aplicar las migraciones de la base de datos**
-```bash
+# 4. Migrate & seed data
 python manage.py migrate
-```
+python manage.py poblar_datos   # loads rooms, professors & navigation graph
 
-**Paso 5: Poblar la base de datos (¡PASO CRÍTICO!)**
-Si no haces esto, el mapa se verá completamente vacío. Este comando carga las salas, profesores y el grafo de rutas desde los archivos CSV.
-```bash
-python manage.py poblar_datos
-```
-*Deberías ver mensajes en verde confirmando que se cargaron las salas, profesores y nodos.*
-
-**Paso 6: (Opcional) Crear usuario administrador**
-Para acceder al panel de Django (`/admin/`).
-```bash
-python manage.py createsuperuser
-```
-
-**Paso 7: Levantar el servidor**
-```bash
+# 5. Run
 python manage.py runserver
 ```
-Abre tu navegador y ve a `http://127.0.0.1:8000/`.
 
-**Paso 8: Ejecutar las pruebas automatizadas (Opcional)**
+Open **http://127.0.0.1:8000/** and start exploring!
+
+> **Optional:** create a superuser for the Django admin panel:
+> ```bash
+> python manage.py createsuperuser
+> ```
+
+---
+
+## Project Structure
+
+```
+├── manage.py
+├── requirements.txt
+├── config/              # Django project settings
+├── core/                # Main application
+│   ├── models.py        # User, Piso, Sala, Profesor, BloqueHorario, Reporte, Nodo, Arista, LugarFavorito
+│   ├── forms.py         # Auth & registration forms
+│   ├── services/        # Business logic (graph construction, Dijkstra routing)
+│   ├── views/           # Controllers by domain (mapa, auth, favoritos)
+│   ├── management/      # poblar_datos management command
+│   ├── urls.py          # URL routing
+│   └── tests.py         # Automated test suite
+├── frontend/
+│   ├── templates/       # Django templates (base, index, login, register, favoritos…)
+│   └── static/          # CSS & JS assets
+├── data/                # CSV seed files (rooms, professors, graph nodes & edges)
+└── docs/                # Documentation & diagrams
+```
+
+---
+
+## API Reference
+
+### Web Views
+
+| Method | Route | Description |
+|:-------|:------|:------------|
+| `GET` | `/` | Interactive campus map & floor viewer |
+| `GET/POST` | `/login` | User login |
+| `GET/POST` | `/register` | Account registration (Professor / Student / Staff) |
+| `GET` | `/logout` | Log out |
+| `GET` | `/favoritos/` | Personal favorites dashboard (auth required) |
+| `GET` | `/admin/` | Django admin panel |
+
+### JSON Endpoints
+
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| `GET` | `/api/pisos/<building>/` | Available floor numbers for a building |
+| `GET` | `/api/piso/<building>/<floor>/` | Floor dimensions, rooms (geometry), and assigned professors |
+| `GET` | `/api/ruta/<building>/<floor>/<from>/<to>/` | Shortest path between two rooms (Dijkstra) |
+| `GET` | `/api/ruta-nodos/<building>/<floor>/<from>/<to>/` | Shortest path between two graph nodes |
+| `POST` | `/api/favoritos/toggle/<room_id>/` | Add / remove a room from favorites |
+| `GET` | `/api/favoritos/estado/<room_id>/` | Check if a room is bookmarked |
+
+---
+
+## Data Model
+
+<p align="center">
+  <img src="docs/diagrama_modelo_datos.png" alt="Entity-relationship diagram" width="700"/>
+</p>
+
+| Entity | Purpose |
+|:-------|:--------|
+| **User** | Extends `AbstractUser` — adds `nombre` and institutional `rol` (Professor / Student / Staff) |
+| **Piso** | Building floor: `edificio` + `numero` with SVG canvas dimensions |
+| **Sala** | Physical room on a floor (room, office, lab, bathroom, stairs, other) with SVG coordinates |
+| **Profesor** / **BloqueHorario** | Faculty member linked to an office, with weekly office-hour blocks |
+| **Reporte** | Community-submitted issue report attached to a room |
+| **Nodo** / **Arista** | Navigation graph used for Dijkstra shortest-path routing |
+| **LugarFavorito** | User ↔ Room bookmark relation |
+
+---
+
+## Running Tests
+
 ```bash
 python manage.py test
 ```
 
 ---
 
-## Rutas y Endpoints Disponibles
+## Team
 
-### Vistas Web
-| Ruta | Descripción |
-| :--- | :--- |
-| `GET /` | Mapa interactivo principal (vista general del campus y visor de pisos). |
-| `GET/POST /login` | Inicio de sesión de usuarios. |
-| `GET/POST /register` | Registro de cuentas con rol (`Profesor`, `Estudiante`, `Auxiliar de aseo`). |
-| `GET /logout` | Cierre de sesión activa. |
-| `GET /favoritos/` | Vista de "Mis Lugares Favoritos" (requiere inicio de sesión). |
-| `GET /admin/` | Panel de administración de Django. |
-
-### API JSON
-| Endpoint | Descripción |
-| :--- | :--- |
-| `GET /api/pisos/<edificio>/` | Lista de números de piso disponibles para un edificio (de mayor a menor). |
-| `GET /api/piso/<edificio>/<numero>/` | Dimensiones del lienzo, salas con geometría (`x, y, ancho, alto`) y profesores asignados. |
-| `GET /api/ruta/<edificio>/<numero>/<desde>/<hasta>/` | Ruta más corta entre dos salas del piso usando Dijkstra (`distancia` y lista de `puntos`). |
-| `GET /api/ruta-nodos/<edificio>/<numero>/<desde>/<hasta>/` | Ruta más corta entre dos nodos cualesquiera del grafo del piso. |
-| `POST /api/favoritos/toggle/<sala_id>/` | Agrega o quita una sala de los favoritos del usuario autenticado. |
-| `GET /api/favoritos/estado/<sala_id>/` | Consulta si una sala específica es favorita del usuario. |
+Built for **CC4401 — Software Engineering** (2026-2) at the University of Chile.
 
 ---
 
-## Modelo de Datos
-
-![Diagrama del modelo de datos](docs/diagrama_modelo_datos.png)
-
-* **`User`**: Usuario autenticado que extiende `AbstractUser` con `nombre` y `rol` institucional (`PROFESOR`, `ESTUDIANTE`, `AUXILIAR`).
-* **`Piso`**: Nivel de un edificio (`edificio` + `numero`) y dimensiones de su lienzo SVG (`ancho`, `alto`).
-* **`Sala`**: Espacio físico dentro de un piso (`sala`, `oficina`, `lab`, `bano`, `escalera`, `otro`), con coordenadas (`x`, `y`, `ancho`, `alto`) y vínculo a su `Nodo` puerta.
-* **`Profesor`** y **`BloqueHorario`**: Docentes asociados a su oficina (`Sala`) y bloques de atención semanal.
-* **`Reporte`**: Reportes comunitarios de problemas o estado asociados a una `Sala`.
-* **`Nodo`** y **`Arista`**: Grafo geométrico de navegación utilizado para calcular el camino más corto mediante Dijkstra (`networkx`).
-* **`LugarFavorito`**: Relación entre un `User` y una `Sala` para guardar accesos rápidos personalizados.
+<p align="center">
+  Made with ❤️ at Beauchef 851
+</p>
